@@ -721,6 +721,7 @@ GameObject:
   - component: {fileID: 170001}
   - component: {fileID: 170002}
   - component: {fileID: 170003}
+  - component: {fileID: 3149852836106029572}
   m_Layer: 0
   m_Name: RoomCamera
   m_TagString: MainCamera
@@ -838,3 +839,21 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &3149852836106029572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 170000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff1294dea5d170f49b961a9d6dc91e5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SurveillanceCamController
+  yawSpeed: 25
+  pitchSpeed: 18
+  yawLimit: 45
+  lookUpLimit: 25
+  lookDownLimit: 30
+  resetWhenControlStarts: 0
