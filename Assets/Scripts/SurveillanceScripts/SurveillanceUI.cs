@@ -19,6 +19,7 @@ public class SurveillanceUI : MonoBehaviour
     [Header("Visuals")]
     [SerializeField] private Material fisheyeMaterial;
     
+    private SurveillanceCamController activeCameraController;
     public bool IsOpen { get; private set; }
     
     private void Start()
@@ -42,6 +43,15 @@ public class SurveillanceUI : MonoBehaviour
             {
                 Close();
             }
+        }
+    }
+    
+    private void DisableActiveCameraControl()
+    {
+        if (activeCameraController != null)
+        {
+            activeCameraController.SetControlled(false);
+            activeCameraController = null;
         }
     }
 
@@ -68,10 +78,28 @@ public class SurveillanceUI : MonoBehaviour
         expandedImage.texture = feed.renderTexture;
         expandedImage.material = fisheyeMaterial;
         expandedText.text = feed.displayName;
+        
+        // Get cam controll
+        if (feed.camera != null)
+        {
+            activeCameraController = feed.camera.GetComponent<SurveillanceCamController>();
+
+            if (activeCameraController != null)
+            {
+                activeCameraController.SetControlled(true);
+            }
+            else
+            {
+                Debug.LogWarning($"{feed.camera.name} has no SurveillanceCamController.");
+            }
+        }
     }
     
     public void CloseExpandedFeed()
     {
+        // Remove cam controll
+        DisableActiveCameraControl();
+        
         expandedPanel.SetActive(false);
         surveillancePanel.SetActive(true);
     }
@@ -86,6 +114,9 @@ public class SurveillanceUI : MonoBehaviour
 
     public void Close()
     {
+        // Remove cam controll
+        DisableActiveCameraControl();
+        
         IsOpen = false;
 
         surveillancePanel.SetActive(false);
