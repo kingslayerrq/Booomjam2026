@@ -8,7 +8,8 @@ public class CharacterBillboardBehavior : MonoBehaviour
 
     private void LateUpdate()
     {
-        transform.LookAt(transform.position + currentCamera.transform.rotation * Vector3.forward,
-            currentCamera.transform.rotation * Vector3.up);
+        transform.rotation = currentCamera.transform.rotation;
     }
+    
+    // TODO: AssignCamera()
 }
