@@ -35,7 +35,8 @@ MonoBehaviour:
       type: 3}
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
-  m_RendererFeatureMap: ad6b866f10d7b46c
+  - {fileID: 6325804937302518103}
+  m_RendererFeatureMap: ad6b866f10d7b46c5729542e13c6c957
   m_UseNativeRenderPass: 1
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 2
@@ -93,3 +94,26 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 3302065f671a8450b82c9ddf07426f3a, type: 3}
   - {fileID: 2800000, guid: 56a77a3e8d64f47b6afe9e3c95cb57d5, type: 3}
   m_Shader: {fileID: 4800000, guid: 0849e84e3d62649e8882e9d6f056a017, type: 3}
+--- !u!114 &6325804937302518103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f24c53d2f2a4f74b8539a386d841712, type: 3}
+  m_Name: PS1PostProcessFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    enabled: 1
+    renderPassEvent: 600
+    material: {fileID: 2100000, guid: f39d72c44fd64a44af1a5c9d8e0a6b21, type: 2}
+    pixelHeight: 180
+    colorLevels: 32
+    ditherStrength: 0.25
+    scanlineStrength: 0.08
+    vignetteStrength: 0.12
+    jitterStrength: 0
