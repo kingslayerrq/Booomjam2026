@@ -14,6 +14,7 @@ public class SurveillanceCamController : MonoBehaviour
 
     [Header("Options")]
     [SerializeField] private bool resetWhenControlStarts = false;
+    
 
     private Quaternion baseLocalRotation;
 
@@ -30,6 +31,8 @@ public class SurveillanceCamController : MonoBehaviour
     private void Update()
     {
         if (!isControlled)
+            return;
+        if (GameManager.IsMenuOpen || GameManager.BlockCamControl)
             return;
 
         HandleCameraInput();

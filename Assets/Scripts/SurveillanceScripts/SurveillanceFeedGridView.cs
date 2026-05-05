@@ -17,8 +17,11 @@ public class SurveillanceFeedGridView : MonoBehaviour
         feed = surveillanceFeed;
         ui = surveillanceUI;
 
-        feedImage.texture = feed.renderTexture;
-        feedImage.material = feedMaterial;
+        if (feedImage != null)
+        {
+            feedImage.texture = feed.renderTexture;
+            feedImage.material = feedMaterial;
+        }
         
         feedTitle.text = feed.displayName;
         

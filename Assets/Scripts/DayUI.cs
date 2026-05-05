@@ -14,7 +14,7 @@ public class DayUI : MonoBehaviour
     {
         if (dayManager != null)
         {
-            dayManager.OnDayStarted += UpdateDayUI;
+            dayManager.OnDayInitialized += UpdateDayUI;
             dayManager.OnTimeChanged += UpdateTimeUI;
         }
         UpdateDayUI();
@@ -25,7 +25,7 @@ public class DayUI : MonoBehaviour
     {
         if (dayManager != null)
         {
-            dayManager.OnDayStarted -= UpdateDayUI;
+            dayManager.OnDayInitialized -= UpdateDayUI;
             dayManager.OnTimeChanged -= UpdateTimeUI;
         }
     }

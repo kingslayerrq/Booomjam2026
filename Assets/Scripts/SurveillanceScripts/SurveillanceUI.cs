@@ -20,6 +20,8 @@ public class SurveillanceUI : MonoBehaviour
     [SerializeField] private Material fisheyeMaterial;
     
     private SurveillanceCamController activeCameraController;
+
+    public static bool IsFeedGridViewPanelActive {get; private set;}
     public bool IsOpen { get; private set; }
     
     private void Start()
@@ -72,7 +74,7 @@ public class SurveillanceUI : MonoBehaviour
     
     public void OpenExpandedFeed(SurveillanceFeed feed)
     {
-        surveillancePanel.SetActive(false);
+        // surveillancePanel.SetActive(false);
         expandedPanel.SetActive(true);
 
         expandedImage.texture = feed.renderTexture;
@@ -109,6 +111,7 @@ public class SurveillanceUI : MonoBehaviour
         IsOpen = true;
 
         surveillancePanel.SetActive(true);
+        IsFeedGridViewPanelActive = true;
         expandedPanel.SetActive(false);
     }
 
@@ -120,6 +123,7 @@ public class SurveillanceUI : MonoBehaviour
         IsOpen = false;
 
         surveillancePanel.SetActive(false);
+        IsFeedGridViewPanelActive = false;
         expandedPanel.SetActive(false);
     }
 }
