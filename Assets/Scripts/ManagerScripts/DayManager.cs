@@ -1,15 +1,16 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class DayManager : MonoBehaviour
 {
-    [Header("Settings")] 
+    [Header("Time Settings")] 
     [SerializeField] private int currentDay;
     [SerializeField] private int totalDays;
-    [SerializeField] private float dayDurationInSeconds;
-    [SerializeField] private int startHour;
-    [SerializeField] private int endHour;
-
+    [SerializeField] private float halfDayDurationInSeconds;
+    [SerializeField] private int startHour = 0;
+    [SerializeField] private int endHour = 24;
+    
     private float elapsedTimeInSeconds;
     private bool isDayRunning;
     
@@ -17,44 +18,90 @@ public class DayManager : MonoBehaviour
     public int TotalDays => totalDays;
     public int StartHour => startHour;
     public int EndHour => endHour;
-    public float DayDurationInSeconds => dayDurationInSeconds;
-    public float RemainingSeconds => Mathf.Max(0f, dayDurationInSeconds - elapsedTimeInSeconds);
-    public float NormalizedTime => dayDurationInSeconds <= 0f ? 1f : elapsedTimeInSeconds / dayDurationInSeconds;
+    public bool IsMorning => isDayRunning && RemainingSeconds > halfDayDurationInSeconds;
+    public float DayDurationInSeconds => halfDayDurationInSeconds * 2;
+    public float RemainingSeconds => Mathf.Max(0f, DayDurationInSeconds - elapsedTimeInSeconds);
+    public float NormalizedTime => (DayDurationInSeconds) <= 0f ? 1f : elapsedTimeInSeconds / (DayDurationInSeconds);
 
     public bool IsDayRunning => isDayRunning;
 
-    public event Action OnDayStarted;
+    public event Action OnDayInitialized;       // Setup, UIs
+    public event Action OnMorningStarted;       // Gameplay logic events
+    public event Action OnAfternoonStarted;
+    public event Action OnHalfDayPassed;
     public event Action OnDayEnded;
     public event Action OnTimeChanged;
+    
 
     private void Update()
     {
         if (!isDayRunning) return;
         
+        bool wasMorning = elapsedTimeInSeconds < halfDayDurationInSeconds;
+        
         elapsedTimeInSeconds += Time.deltaTime;
         OnTimeChanged?.Invoke();
 
-        if (elapsedTimeInSeconds >= dayDurationInSeconds)
+        if (wasMorning && elapsedTimeInSeconds >= halfDayDurationInSeconds)
+        {
+            // TODO: half day events?
+            EndHalfDay();
+        }
+
+        if (elapsedTimeInSeconds >= DayDurationInSeconds)
         {
             EndDay();
         }
     }
 
-    public void StartDay(int day)
+    public void StartDay(int day, bool fromMorning = true)
     {
         if (day > totalDays) return;
+        
         currentDay = day;
-        OnDayStarted?.Invoke();
-        
-        elapsedTimeInSeconds = 0;
         isDayRunning = true;
+        elapsedTimeInSeconds = fromMorning ? 0 : halfDayDurationInSeconds;
+
+        OnDayInitialized?.Invoke();
+
+        if (fromMorning)
+        {
+            OnMorningStarted?.Invoke();
+        }
+        else
+        {
+            OnAfternoonStarted?.Invoke();
+        }
+
+        Debug.Log(fromMorning ? $"Day {currentDay} started." : $"Day {currentDay} continued from noon.");
+    }
+    
+    /// <summary>
+    /// Force the current half day to be passed (eg: energy reaches 0)
+    /// </summary>
+    public void ForceEndHalfDay()
+    {
+        bool wasMorning = RemainingSeconds > halfDayDurationInSeconds;
         
-        Debug.Log($"Day {currentDay} started.");
+        if (wasMorning)
+        {
+            EndHalfDay();
+        }
+        else
+        {
+            EndDay();
+        }
+    }
+    
+    private void EndHalfDay()
+    {
+        isDayRunning = false;
+        OnHalfDayPassed?.Invoke();
+        Debug.Log($"Day {currentDay} passed noon.");
     }
 
-    public void EndDay()
+    private void EndDay()
     {
-        if (!isDayRunning) return;
         isDayRunning = false;
         OnDayEnded?.Invoke();
         

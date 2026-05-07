@@ -1,27 +1,32 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 public class PlayerInteract : MonoBehaviour
 {
     [Header("References")] 
     [SerializeField] private Transform playerCamera;
-
-    [Header("Settings")] 
-    [SerializeField] private Key interactKey;
+    [SerializeField] private SurveillanceUI surveillanceUI;
+    
 
     [Header("Debug Settings")] 
     [SerializeField] private float debugInteractRange;
+    
+    private IInteractable currentInteractable;
+    private HighlightComponent currentHighlightable;
 
     private void Update()
     {
-        if (GameManager.IsMenuOpen || GameManager.IsCursorUnlocked)
-            return;
-
-        if (Keyboard.current[interactKey].wasReleasedThisFrame)
+        if (GameManager.IsMenuOpen || GameManager.IsCursorUnlocked || (surveillanceUI != null && surveillanceUI.IsOpen))
         {
-            TryInteract();
+            ClearCurrentInteractTarget();
+            return;
+        }
+        
+        UpdateCurrentInteractTarget();
+
+        if (currentInteractable != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            currentInteractable.Interact();
         }
         
         
@@ -32,16 +37,52 @@ public class PlayerInteract : MonoBehaviour
         Debug.DrawRay(playerCamera.position, forward, isHit ? Color.green : Color.red);
     }
 
-    private void TryInteract()
+    private void UpdateCurrentInteractTarget()
     {
-        Ray ray = new  Ray(playerCamera.position, playerCamera.forward);
+        Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
 
-        if (!Physics.Raycast(ray, out RaycastHit hit)) return;
+        if (!Physics.Raycast(ray, out RaycastHit hit, debugInteractRange))
+        {
+            ClearCurrentInteractTarget();
+            return;
+        }
         
-        IInteractable  interactable = hit.collider.GetComponent<IInteractable>();
+        IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+        if (interactable == null)
+        {
+            ClearCurrentInteractTarget();
+            return;
+        }
+        HighlightComponent highlightComponent = hit.collider.GetComponentInParent<HighlightComponent>();
         
-        if (interactable == null) return;
-        
-        interactable.Interact();
+        SetCurrentTarget(interactable, highlightComponent);
+    }
+    private void SetCurrentTarget(IInteractable interactable, HighlightComponent highlightComponent)
+    {
+        if (currentInteractable == interactable)
+            return;
+
+        ClearCurrentInteractTarget();
+
+        currentInteractable = interactable;
+        currentHighlightable = highlightComponent;
+
+        if (currentHighlightable != null)
+        {
+            currentHighlightable.SetHighlight(true);
+            // Debug.Log($"current highlight is {currentHighlightable.gameObject.name}");
+        }
+    }
+    
+    private void ClearCurrentInteractTarget()
+    {
+        if (currentHighlightable != null)
+        {
+            currentHighlightable.SetHighlight(false);
+            // Debug.Log($"Disabled highlight: {currentHighlightable.gameObject.name}");
+        }
+
+        currentInteractable = null;
+        currentHighlightable = null;
     }
 }

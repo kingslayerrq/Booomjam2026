@@ -17,7 +17,8 @@ public static class SaveSystem
 
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(SavePath, json);
-
+        
+        Debug.Log($"Data: {data.ToString()}");
         Debug.Log($"Game saved to: {SavePath}");
     }
     
