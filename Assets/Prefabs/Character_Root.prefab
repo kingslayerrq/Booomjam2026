@@ -237,6 +237,7 @@ GameObject:
   - component: {fileID: 7543538924404267442}
   - component: {fileID: 8822099177078285763}
   - component: {fileID: 3394017557747993572}
+  - component: {fileID: 2315953843644465176}
   m_Layer: 0
   m_Name: Character_Root
   m_TagString: Untagged
@@ -310,6 +311,19 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &2315953843644465176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3940613829420828962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b5d1c1d56691ff4ab11f45b4a538d91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PrisonerActionController
+  dayManager: {fileID: 0}
 --- !u!1 &4404685745156603474
 GameObject:
   m_ObjectHideFlags: 0
@@ -675,4 +689,3 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
-

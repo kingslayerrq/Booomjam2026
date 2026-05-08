@@ -67,7 +67,6 @@ public class SurveillanceUI : MonoBehaviour
             if (hasFeed)
             {
                 feedGridViews[i].Setup(feeds[i], this, fisheyeMaterial);
-                Debug.Log($"Setup Feed {i}");
             }
         }
     }

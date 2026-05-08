@@ -400,9 +400,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DayManager
   currentDay: 0
   totalDays: 7
-  halfDayDurationInSeconds: 30
-  startHour: 0
-  endHour: 24
+  timeConfig: {fileID: 11400000, guid: b395e5ac5b9c4b740861e25a35f6bb43, type: 2}
+  noonHour: 12
 --- !u!1 &37303622 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: cc5af4de6516e0241a0fe13cc0969778, type: 3}
@@ -555,6 +554,7 @@ Transform:
   - {fileID: 1553666128}
   - {fileID: 35775897}
   - {fileID: 1083540390}
+  - {fileID: 1784080799}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &51993654
@@ -11603,8 +11603,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7dfe60650a228d7428be04acddbb1657, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PrisonerManager
-  prisonerData: []
-  badPrisonerData: []
+  dayManager: {fileID: 35775898}
+  prisonerPrefab: {fileID: 3940613829420828962, guid: 3d33049901b653f4e931c5f5fec688ae, type: 3}
+  prisonerData:
+  - {fileID: 11400000, guid: 4d6232c06c0115b4eac72ea85aca7451, type: 2}
+  - {fileID: 11400000, guid: 0bcd3bce6528a5c4fa4149ee21284247, type: 2}
+  - {fileID: 11400000, guid: f2576a7b79b007743aafcda9c13e1522, type: 2}
+  - {fileID: 11400000, guid: e03e434cf883e8d4daad4318451d8dc6, type: 2}
+  - {fileID: 11400000, guid: fc613f4ac54bf424eaf46764a8fa1ec9, type: 2}
+  - {fileID: 11400000, guid: f445b8deee3d63f45be6c9f81ff3be91, type: 2}
+  - {fileID: 11400000, guid: 14376af32b69a9941b149674c1060ddb, type: 2}
+  - {fileID: 11400000, guid: a8b253e13df32ed49a99c6148b5a87ea, type: 2}
+  - {fileID: 11400000, guid: ae097970652093c419a50352d4f64d7c, type: 2}
+  - {fileID: 11400000, guid: 6863f4fa72141a042b5f646daa6bbc71, type: 2}
+  badPrisonersPerDay: 01000000010000000100000001000000010000000100000001000000
+  masterSchedule:
+  - {fileID: 11400000, guid: 025b9fb10d8575146b6cb01246cf1717, type: 2}
+  - {fileID: 11400000, guid: d46b2967a6fd1e94ca31b38900b4a226, type: 2}
+  - {fileID: 11400000, guid: 1a42686c86d407a46996612f67fd77fd, type: 2}
+  - {fileID: 11400000, guid: 8539293e88d28004a9846c4939f36c4c, type: 2}
+  - {fileID: 11400000, guid: fee9741239a32cd4384416e3425d9a1a, type: 2}
+  - {fileID: 11400000, guid: 865839779d2e41246a03cd2f08bbfad3, type: 2}
+  - {fileID: 11400000, guid: 47cea5059bb613440be791f8be873bad, type: 2}
 --- !u!1 &1092435959
 GameObject:
   m_ObjectHideFlags: 0
@@ -16458,6 +16478,75 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.3053284, y: 0.84465206, z: 1.1375562}
   m_Center: {x: -0.029464722, y: 0.40979713, z: 0.06877823}
+--- !u!1 &1784080798
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1784080799}
+  - component: {fileID: 1784080800}
+  m_Layer: 0
+  m_Name: RoomManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1784080799
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1784080798}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 40556291}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1784080800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1784080798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f7b5c4207dbf6347aed41cd88d304d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomManager
+  roomEntries:
+  - roomName: Room_01
+    roomObject: {fileID: 803310814}
+  - roomName: Room_02
+    roomObject: {fileID: 853101088}
+  - roomName: Room_03
+    roomObject: {fileID: 462708746}
+  - roomName: Room_04
+    roomObject: {fileID: 2042050544}
+  - roomName: Room_05
+    roomObject: {fileID: 747058473}
+  - roomName: Room_06
+    roomObject: {fileID: 198597688}
+  - roomName: Room_07
+    roomObject: {fileID: 826305123}
+  - roomName: Room_08
+    roomObject: {fileID: 2081030696}
+  - roomName: Room_09
+    roomObject: {fileID: 88497239}
+  - roomName: Room_10
+    roomObject: {fileID: 395986917}
+  - roomName: Room_11
+    roomObject: {fileID: 776025845}
+  - roomName: Room_12
+    roomObject: {fileID: 314356475}
 --- !u!1 &1785621987
 GameObject:
   m_ObjectHideFlags: 0
