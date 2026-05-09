@@ -51,6 +51,11 @@ public class PrisonerActionController : MonoBehaviour
     {
         float currentHour = _dayManager.CurrentHour;
         ScheduleBlock scheduledBlock = GetBlockForCurrentTime(currentHour);
+        
+        if (scheduledBlock == null && _currentScheduleBlock == null && _prisoner.DailySchedule.Count > 0)
+            Debug.LogWarning($"[{_prisoner.PrisonerID}] " +
+                             $"No schedule block matches hour {currentHour:F1} — " +
+                             $"check block hour ranges cover the full day.");
 
         // switch to new action
         if (scheduledBlock != null && scheduledBlock != _currentScheduleBlock)
@@ -62,11 +67,19 @@ public class PrisonerActionController : MonoBehaviour
             
             _currentScheduleBlock = scheduledBlock;
             _currentAction = scheduledBlock.actualAction;
+            Debug.Log($"[{_prisoner.PrisonerID}] Action changed at hour " +
+                      $"{currentHour:F1} → {_currentAction?.name ?? "null"} " +
+                      $"(block {scheduledBlock.startHour}-{scheduledBlock.endHour})");
             
             if (_currentAction != null)
             {
                 _currentAction.StartAction(this); 
             }
+        }
+        if (scheduledBlock == null && _currentAction != null)
+        {
+            Debug.LogWarning($"[{_prisoner.PrisonerID}] No schedule block for hour " +
+                             $"{currentHour:F1} — {_prisoner.DailySchedule.Count} blocks total");
         }
         
     }

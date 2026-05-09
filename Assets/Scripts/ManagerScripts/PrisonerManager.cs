@@ -37,7 +37,9 @@ public class PrisonerManager : MonoBehaviour
         if (dayManager == null)
         {
             Debug.LogError($"[PrisonerManager] There is no day manager!");
+            return;
         }
+        
     }
 
     private void OnEnable()
@@ -55,13 +57,9 @@ public class PrisonerManager : MonoBehaviour
             dayManager.OnMorningStarted -= HandleNewDayStart;
         }
     }
+    
 
-    private void Start()
-    {
-        InitPrisoners();
-    }
-
-    private void InitPrisoners()
+    public void InitPrisoners()
     {
         for (int i = 0; i < prisonerData.Length; i++)
         {
@@ -88,9 +86,22 @@ public class PrisonerManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// public wrapper
+    /// Use to set up prisoners from a save starting in afternoon
+    /// </summary>
+    /// <param name="day"></param>
+    public void SetupPrisonerForDay(int day)
+    {
+        ResetPrisoners();
+        AssignBadPrisoners(day);
+        AssignDailySchedule(day);
+    }
+
     private void HandleNewDayStart()
     {
-        Debug.Log($"[PrisonerManager] Starting new day {dayManager.CurrentDay}");
+        Debug.Log($"[PrisonerManager] HandleNewDayStart — Day {dayManager.CurrentDay}," +
+                  $" {prisonerList.Count} prisoners");
         ResetPrisoners();
         AssignBadPrisoners(dayManager.CurrentDay);
         AssignDailySchedule(dayManager.CurrentDay);
@@ -98,10 +109,11 @@ public class PrisonerManager : MonoBehaviour
 
     private void ResetPrisoners()
     {
-        // Resets bad
+        // Resets bad && schedule
         for (int i = 0; i < prisonerList.Count; i++)
         {
             prisonerList[i].MakeBad(false);
+            prisonerList[i].ClearSchedule();
         }
         
         // TODO: reset lockup?
@@ -167,6 +179,24 @@ public class PrisonerManager : MonoBehaviour
                     p.AddSchedule(new ScheduleBlock(currentBlock.startHour, currentBlock.endHour,
                         availableGoodActions[Random.Range(0, availableGoodActions.Count)]));
                 }
+            }
+        }
+        
+        foreach (var p in prisonerList)
+        {
+            string blocks = string.Join(", ", 
+                p.DailySchedule.ConvertAll(b => $"[{b.startHour}-{b.endHour}: " +
+                                                $"{b.actualAction?.name ?? "null"}]"));
+            Debug.Log($"[PrisonerManager] {p.PrisonerID} ({(p.IsBad ? "BAD" : "good")}) schedule: {blocks}");
+        }
+        
+        foreach (var p in prisonerList)
+        {
+            foreach (var block in p.DailySchedule)
+            {
+                if (block.actualAction == null)
+                    Debug.LogWarning($"[PrisonerManager] {p.PrisonerID} " +
+                                     $"has a schedule block[{block.startHour}-{block.endHour}] with no action assigned.");
             }
         }
     }

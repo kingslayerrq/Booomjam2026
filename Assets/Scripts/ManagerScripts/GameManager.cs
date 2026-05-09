@@ -5,7 +5,9 @@ public class GameManager : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private DayManager dayManager;
+    [SerializeField] private PrisonerManager prisonerManager;
     [SerializeField] private PlayerResource playerResource;
+    [SerializeField] private PlayerHealth playerHealth;
     
     [Header("UI Panels")]
     [SerializeField] private GameObject mainMenuPanel;
@@ -20,13 +22,13 @@ public class GameManager : MonoBehaviour
     [Tooltip("Panels that will block camera control input when active")]
     [SerializeField] private GameObject[] blockCamControlPanels;
     
-    
     [Header("Options")]
     [SerializeField] private bool loadSaveOnStart = false;
 
     public static bool IsMenuOpen { get; private set; }
     public static bool IsCursorUnlocked { get; private set; }
     public static bool BlockCamControl { get; private set; }
+    
     private void OnEnable()
     {
         if (dayManager != null)
@@ -34,6 +36,12 @@ public class GameManager : MonoBehaviour
             dayManager.OnDayEnded += HandleDayEnd;
             dayManager.OnHalfDayPassed += HandleHalfDayPassed;
         }
+
+        if (playerHealth != null)
+        {
+            playerHealth.OnPlayerHealthDepleted += HandleGameOver;
+        }
+        
     }
     
 
@@ -43,6 +51,11 @@ public class GameManager : MonoBehaviour
         {
             dayManager.OnDayEnded -= HandleDayEnd;
             dayManager.OnHalfDayPassed -= HandleHalfDayPassed;
+        }
+        
+        if (playerHealth != null)
+        {
+            playerHealth.OnPlayerHealthDepleted -= HandleGameOver;
         }
     }
     
@@ -78,6 +91,14 @@ public class GameManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void HandleGameOver()
+    {
+        dayManager.StopDay();
+        HideGameStatePanels();
+        gameOverPanel.SetActive(true);
+        SaveSystem.DeleteSave();
     }
 
     /// <summary>
@@ -144,6 +165,9 @@ public class GameManager : MonoBehaviour
         SetMenuOpen(false);
 
         playerResource.ResetResources();
+        playerHealth.ResetHealth();
+        if (prisonerManager != null) prisonerManager.InitPrisoners();
+        
         dayManager.StartDay(1, true);
 
         SaveCurrentGame();
@@ -160,7 +184,7 @@ public class GameManager : MonoBehaviour
             dayManager.CurrentDay,
             dayManager.IsMorning,
             playerResource.CurrentBatteryLevel,
-            playerResource.CurrentEnergy
+            playerHealth.CurrentHealth
         );
 
         SaveSystem.Save(saveData);
@@ -196,9 +220,23 @@ public class GameManager : MonoBehaviour
     {
         HideGameStatePanels();
         SetMenuOpen(false);
-
-        playerResource.SetResources(saveData.batteryLevel, saveData.stamina);
+        
+        // load save values
+        playerResource.SetBatteryLevel(saveData.batteryLevel);
+        playerHealth.SetHealth(saveData.playerHealth);
+        
+        // setup prisoner 
+        if (prisonerManager != null)
+        {
+            prisonerManager.InitPrisoners();
+        }
+        
         dayManager.StartDay(saveData.currentDay, saveData.isMorning);
+        
+        if (!saveData.isMorning)
+        {
+            prisonerManager.SetupPrisonerForDay(saveData.currentDay);
+        }
     }
     
     private void HideGameStatePanels()

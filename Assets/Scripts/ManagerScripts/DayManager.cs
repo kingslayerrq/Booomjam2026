@@ -111,4 +111,14 @@ public class DayManager : MonoBehaviour
         
         Debug.Log($"Day {currentDay} ended.");
     }
+
+    /// <summary>
+    /// Stops time
+    /// </summary>
+    public void StopDay()
+    {
+        isDayRunning = false;
+        
+        Debug.Log($"Day {currentDay} stopped.");
+    }
 }

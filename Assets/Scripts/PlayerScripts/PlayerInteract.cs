@@ -57,7 +57,7 @@ public class PlayerInteract : MonoBehaviour
             hitBuffer,
             interactRange
         );
-        Debug.Log($"hitCount: {hitCount}");
+
         IInteractable closestInteractable = null;
         HighlightComponent closestHighlight = null;
         float closestDist = Mathf.Infinity;
@@ -91,9 +91,9 @@ public class PlayerInteract : MonoBehaviour
             ? closestHighlight.transform
             : ((MonoBehaviour)closestInteractable).transform;
         
-        Debug.Log($"Closest candidate: {((MonoBehaviour)closestInteractable).gameObject.name}");
+        // Debug.Log($"Closest candidate: {((MonoBehaviour)closestInteractable).gameObject.name}");
         bool blocked = Physics.Linecast(playerCamera.position, targetTransform.position, wallLayerMask);
-        Debug.Log($"Linecast blocked: {blocked}");
+        // Debug.Log($"Linecast blocked: {blocked}");
         if (blocked) ClearCurrentInteractTarget();
         else SetCurrentTarget(closestInteractable, closestHighlight);
     }

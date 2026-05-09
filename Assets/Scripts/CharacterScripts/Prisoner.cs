@@ -30,10 +30,6 @@ public class Prisoner
     public void MakeBad(bool bad)
     {
         isBad = bad;
-        if (isBad)
-        {
-            Debug.Log($"{PrisonerID} is bad.");
-        }
     }
 
     public void LockUp()
