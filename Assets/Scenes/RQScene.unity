@@ -1332,7 +1332,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteract
   playerCamera: {fileID: 330585546}
   surveillanceUI: {fileID: 316125005}
+  interactRange: 10
+  interactRadius: 5
+  wallLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   debugInteractRange: 10
+  coneLinesCount: 8
 --- !u!114 &113147765
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2075,7 +2081,7 @@ GameObject:
   m_Component:
   - component: {fileID: 168243814}
   - component: {fileID: 168243815}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Mug_Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -11625,6 +11631,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fee9741239a32cd4384416e3425d9a1a, type: 2}
   - {fileID: 11400000, guid: 865839779d2e41246a03cd2f08bbfad3, type: 2}
   - {fileID: 11400000, guid: 47cea5059bb613440be791f8be873bad, type: 2}
+  prisonerList: []
 --- !u!1 &1092435959
 GameObject:
   m_ObjectHideFlags: 0
@@ -12727,7 +12734,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1203947435}
   - component: {fileID: 1203947436}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: PC_Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
