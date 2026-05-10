@@ -32,7 +32,7 @@ public class SurveillanceCamController : MonoBehaviour
     {
         if (!isControlled)
             return;
-        if (GameManager.IsMenuOpen || GameManager.BlockCamControl)
+        if (GameManager.IsMenuOpen || GameManager.BlockCamControl || SurveillancePrisonerInteractionPanel.IsAnyOpen)
             return;
 
         HandleCameraInput();

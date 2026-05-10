@@ -36,6 +36,8 @@ public class PrisonerActionController : MonoBehaviour
     private void Update()
     {
         if (_dayManager == null || !_dayManager.IsDayRunning) return;
+
+        if (_prisoner is { IsLockedUp: true }) return;
         
         UpdateSchedule();
 
