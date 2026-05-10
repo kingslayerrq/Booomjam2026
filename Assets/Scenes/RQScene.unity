@@ -15453,7 +15453,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CoffeeMugInteractable
   energyGainedOnInteract: 20
   energyPercentageGainedOnInteract: 0.5
-  interactionDurationInSeconds: 5
+  interactionDurationInSeconds: 0.4
   dayManager: {fileID: 35775898}
   playerResource: {fileID: 113147765}
   modifyEnergyByPercentage: 0
