@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -7,8 +8,7 @@ public class PlayerResource : MonoBehaviour
     [Header("Battery")] 
     [SerializeField] private float currentBatteryLevel;
     [SerializeField] private float maxBatteryLevel;
-
-
+    
     [Header("Energy")] 
     [SerializeField] private bool drainEnergy = true;
     [SerializeField] private float currentEnergy;
@@ -18,6 +18,7 @@ public class PlayerResource : MonoBehaviour
     
     [Header("References")]
     [SerializeField] private DayManager dayManager;
+    [SerializeField] private PlayerHealth playerHealth;
     
     public float CurrentBatteryLevel => currentBatteryLevel;
     public float MaxBatteryLevel => maxBatteryLevel;
@@ -26,6 +27,14 @@ public class PlayerResource : MonoBehaviour
 
     public event Action OnBatteryLevelChanged;
     public event Action OnEnergyChanged;
+
+    private void Awake()
+    {
+        if (playerHealth == null)
+        {
+            playerHealth = GetComponent<PlayerHealth>();
+        }
+    }
 
     private void OnEnable()
     {
@@ -55,11 +64,12 @@ public class PlayerResource : MonoBehaviour
             
             if (currentEnergy <= 0)
             {
-                Debug.Log("No energy");
+                playerHealth.TakeDamageFromEnergyDepletion();
                 dayManager.ForceEndHalfDay();
             }
         }
     }
+    
 
     
     public void ResetResources()
@@ -80,13 +90,7 @@ public class PlayerResource : MonoBehaviour
         OnBatteryLevelChanged?.Invoke();
     }
     
-    public void SetResources(float batteryLevel, float stamina)
-    {
-        currentBatteryLevel = batteryLevel;
-        OnBatteryLevelChanged?.Invoke();
-        currentEnergy = stamina;
-        OnEnergyChanged?.Invoke();
-    }
+   
     
     #region BatteryFunc
     

@@ -1,33 +1,248 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class PrisonerManager : MonoBehaviour
 {
-    [Header("Prisoner Settings")]
+    [Header("References")]
+    [SerializeField] private DayManager dayManager;
+    
+    [Header("Prisoner Settings")] 
+    [SerializeField] private GameObject prisonerPrefab;
     [SerializeField] private PrisonerData[] prisonerData;
-    [SerializeField] private PrisonerData[] badPrisonerData;
+    [Header("Format: [Day1_BadPrisonerCount, ...]")]
+    [Tooltip("Index represents the day number.")]
+    [SerializeField] private List<int> badPrisonersPerDay = new List<int>();
+    
+    [Header("Schedule Settings")]
+    [SerializeField] private DayScheduleConfig[] masterSchedule;
+    
+    [Header("Debug")]
+    [SerializeField] private List<Prisoner> prisonerList = new List<Prisoner>();
+    
+    private Dictionary<Prisoner, PrisonerActionController> prisonerDirectory = new Dictionary<Prisoner, PrisonerActionController>();
+    
+    public IReadOnlyList<Prisoner> PrisonerList => prisonerList;
+    public DayScheduleConfig[] MasterSchedule => masterSchedule;
 
-    public  Prisoner[]  Prisoners { get; private set; }
-
-    public  Prisoner[]  BadPrisoners { get; private set; }
-
-    private void Start()
+    private void Awake()
     {
-        InitPrisoners();
+        if (masterSchedule == null)
+        {
+            Debug.LogError($"[PrisonerManager] There is no master schedule!");
+            return;
+        }
+
+        if (dayManager == null)
+        {
+            Debug.LogError($"[PrisonerManager] There is no day manager!");
+            return;
+        }
+        
     }
 
-    private void InitPrisoners()
+    private void OnEnable()
     {
-        Prisoners = new Prisoner[prisonerData.Length];
+        if (dayManager)
+        {
+            dayManager.OnMorningStarted += HandleNewDayStart;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (dayManager)
+        {
+            dayManager.OnMorningStarted -= HandleNewDayStart;
+        }
+    }
+    
+
+    public void InitPrisoners()
+    {
         for (int i = 0; i < prisonerData.Length; i++)
         {
-            Prisoners[i] = new Prisoner(prisonerData[i]);
+            SpawnPrisoner(prisonerData[i]);
         }
-        BadPrisoners = new Prisoner[badPrisonerData.Length];
-        for (int i = 0; i < badPrisonerData.Length; i++)
+    }
+
+    public void SpawnPrisoner(PrisonerData pData)
+    {
+        Prisoner p = new Prisoner(pData);
+        Debug.Log($"Spawning prisoner {p.PrisonerID}, assigned cell: {pData.AssignedCellRoom}");
+        GameObject prisonerObj = Instantiate(prisonerPrefab, transform);
+        PrisonerActionController prisonerController = prisonerObj.GetComponent<PrisonerActionController>();
+        if (prisonerController != null)
         {
-            BadPrisoners[i] = new Prisoner(badPrisonerData[i]);
+            prisonerController.Initialize(p, dayManager);
+            prisonerObj.name = $"Prisoner_{p.PrisonerID}";
+            
+            RegisterPrisoner(p, prisonerController);
+        }
+        else
+        {
+            Debug.LogWarning("No prisoner controller found.");
+        }
+    }
+
+    /// <summary>
+    /// public wrapper
+    /// Use to set up prisoners from a save starting in afternoon
+    /// </summary>
+    /// <param name="day"></param>
+    public void SetupPrisonerForDay(int day)
+    {
+        ResetPrisoners();
+        AssignBadPrisoners(day);
+        AssignDailySchedule(day);
+    }
+
+    private void HandleNewDayStart()
+    {
+        Debug.Log($"[PrisonerManager] HandleNewDayStart — Day {dayManager.CurrentDay}," +
+                  $" {prisonerList.Count} prisoners");
+        ResetPrisoners();
+        AssignBadPrisoners(dayManager.CurrentDay);
+        AssignDailySchedule(dayManager.CurrentDay);
+    }
+
+    private void ResetPrisoners()
+    {
+        // Resets bad && schedule
+        for (int i = 0; i < prisonerList.Count; i++)
+        {
+            prisonerList[i].MakeBad(false);
+            prisonerList[i].ClearSchedule();
+        }
+        
+        // TODO: reset lockup?
+    }
+    public void AssignBadPrisoners(int currentDay)
+    {
+        List<Prisoner> allPrisonersCopy = new List<Prisoner>(prisonerList);
+        
+        int num = badPrisonersPerDay[currentDay];
+        if (num > allPrisonersCopy.Count)
+        {
+            num = allPrisonersCopy.Count;
+        }
+        
+        // Fisher Yates shuffle
+        for (int i = 0; i < allPrisonersCopy.Count; i++)
+        {
+            int randomIndex = Random.Range(i, allPrisonersCopy.Count);
+            
+            (allPrisonersCopy[i], allPrisonersCopy[randomIndex]) = (allPrisonersCopy[randomIndex], allPrisonersCopy[i]);
+        }
+        
+        for (int i = 0; i < num; i++)
+        {
+            allPrisonersCopy[i].MakeBad(true);
+        }
+    }
+
+    private void AssignDailySchedule(int currentDay)
+    {
+        var currentDayMasterSchedule = masterSchedule[currentDay];
+        if (currentDayMasterSchedule == null) return;
+
+        for (int i = 0; i < currentDayMasterSchedule.scheduleBlocks.Count; i++)
+        {
+            var currentBlock = currentDayMasterSchedule.scheduleBlocks[i];
+            var availableBadActions = new List<PrisonerAction>(currentBlock.badActions);
+            var availableGoodActions = new List<PrisonerAction>(currentBlock.goodActions);
+
+            // Shuffle
+            for (int j = availableBadActions.Count - 1; j > 0; j--)
+            {
+                int k = Random.Range(0, j+1);
+                (availableBadActions[j], availableBadActions[k]) = (availableBadActions[k], availableBadActions[j]);
+            }
+
+            int badCount = 0;
+            foreach (var p in prisonerList)
+            {
+                if (p.IsBad)
+                {
+                    if (badCount >= availableBadActions.Count)
+                    {
+                        Debug.LogWarning($"Trying to assign bad actions, but bad prisoners exceeds the available bad actions count!");
+                        continue;
+                    }
+                    p.AddSchedule(new ScheduleBlock(currentBlock.startHour, currentBlock.endHour,
+                        availableBadActions[badCount]));
+                    badCount++;
+                }
+                else
+                {
+                    p.AddSchedule(new ScheduleBlock(currentBlock.startHour, currentBlock.endHour,
+                        availableGoodActions[Random.Range(0, availableGoodActions.Count)]));
+                }
+            }
+        }
+        
+        foreach (var p in prisonerList)
+        {
+            string blocks = string.Join(", ", 
+                p.DailySchedule.ConvertAll(b => $"[{b.startHour}-{b.endHour}: " +
+                                                $"{b.actualAction?.name ?? "null"}]"));
+            Debug.Log($"[PrisonerManager] {p.PrisonerID} ({(p.IsBad ? "BAD" : "good")}) schedule: {blocks}");
+        }
+        
+        foreach (var p in prisonerList)
+        {
+            foreach (var block in p.DailySchedule)
+            {
+                if (block.actualAction == null)
+                    Debug.LogWarning($"[PrisonerManager] {p.PrisonerID} " +
+                                     $"has a schedule block[{block.startHour}-{block.endHour}] with no action assigned.");
+            }
+        }
+    }
+    
+    
+    
+    /// <summary>
+    /// Gets a prisoner's 3D controller by their ID.
+    /// </summary>
+    public PrisonerActionController GetPrisonerController(Prisoner p)
+    {
+        if (prisonerDirectory.TryGetValue(p, out PrisonerActionController controller))
+        {
+            return controller;
+        }
+        
+        Debug.LogWarning($"Could not find active prisoner: {p}");
+        return null;
+    }
+    
+    
+    /// <summary>
+    /// Removes a prisoner
+    /// </summary>
+    public void RemovePrisoner(Prisoner p)
+    {
+        if (prisonerDirectory.ContainsKey(p))
+        {
+            Destroy(prisonerDirectory[p].gameObject);
+            
+            prisonerDirectory.Remove(p);
+        }
+        
+        prisonerList.Remove(p);
+    }
+    
+    private void RegisterPrisoner(Prisoner p, PrisonerActionController pController)
+    {
+        prisonerList.Add(p);
+        if (!prisonerDirectory.ContainsKey(p))
+        {
+            prisonerDirectory.Add(p, pController);
+        }
+        else
+        {
+            Debug.LogError($"{p} already exists!");
         }
     }
     

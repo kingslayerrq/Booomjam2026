@@ -7,22 +7,23 @@ public class DayManager : MonoBehaviour
     [Header("Time Settings")] 
     [SerializeField] private int currentDay;
     [SerializeField] private int totalDays;
-    [SerializeField] private float halfDayDurationInSeconds;
-    [SerializeField] private int startHour = 0;
-    [SerializeField] private int endHour = 24;
+    [SerializeField] private DayTimeConfig timeConfig;
+    [SerializeField] private float noonHour;
     
     private float elapsedTimeInSeconds;
     private bool isDayRunning;
+    private float _totalRealDuration;
+    private float _realSecondsToNoon;
     
     public int CurrentDay => currentDay;
     public int TotalDays => totalDays;
-    public int StartHour => startHour;
-    public int EndHour => endHour;
-    public bool IsMorning => isDayRunning && RemainingSeconds > halfDayDurationInSeconds;
-    public float DayDurationInSeconds => halfDayDurationInSeconds * 2;
-    public float RemainingSeconds => Mathf.Max(0f, DayDurationInSeconds - elapsedTimeInSeconds);
-    public float NormalizedTime => (DayDurationInSeconds) <= 0f ? 1f : elapsedTimeInSeconds / (DayDurationInSeconds);
-
+    public float StartHour => timeConfig.segments[0].gameStartHour;
+    public float EndHour => timeConfig.segments[timeConfig.segments.Count - 1].gameEndHour;
+    public bool IsMorning => isDayRunning && elapsedTimeInSeconds < _realSecondsToNoon;
+    public float DayDurationInSeconds => _totalRealDuration;
+    public float RemainingSeconds => Mathf.Max(0f, _totalRealDuration - elapsedTimeInSeconds);
+    public float NormalizedTime => _totalRealDuration <= 0f ? 1f : elapsedTimeInSeconds / _totalRealDuration;
+    public float CurrentHour => timeConfig.GameHourAtRealSeconds(elapsedTimeInSeconds);
     public bool IsDayRunning => isDayRunning;
 
     public event Action OnDayInitialized;       // Setup, UIs
@@ -37,12 +38,12 @@ public class DayManager : MonoBehaviour
     {
         if (!isDayRunning) return;
         
-        bool wasMorning = elapsedTimeInSeconds < halfDayDurationInSeconds;
+        bool wasMorning = elapsedTimeInSeconds < _realSecondsToNoon;
         
         elapsedTimeInSeconds += Time.deltaTime;
         OnTimeChanged?.Invoke();
 
-        if (wasMorning && elapsedTimeInSeconds >= halfDayDurationInSeconds)
+        if (wasMorning && elapsedTimeInSeconds >= _realSecondsToNoon)
         {
             // TODO: half day events?
             EndHalfDay();
@@ -57,10 +58,13 @@ public class DayManager : MonoBehaviour
     public void StartDay(int day, bool fromMorning = true)
     {
         if (day > totalDays) return;
+        noonHour = timeConfig.dayFormat == DayFormat.TwentyFourHour ? 12 : 6;
+        _totalRealDuration = timeConfig.TotalRealDuration();
+        _realSecondsToNoon = timeConfig.RealSecondsAtGameHour(noonHour);
         
         currentDay = day;
         isDayRunning = true;
-        elapsedTimeInSeconds = fromMorning ? 0 : halfDayDurationInSeconds;
+        elapsedTimeInSeconds = fromMorning ? 0 : _realSecondsToNoon;
 
         OnDayInitialized?.Invoke();
 
@@ -81,7 +85,7 @@ public class DayManager : MonoBehaviour
     /// </summary>
     public void ForceEndHalfDay()
     {
-        bool wasMorning = RemainingSeconds > halfDayDurationInSeconds;
+        bool wasMorning = RemainingSeconds > _realSecondsToNoon;
         
         if (wasMorning)
         {
@@ -106,5 +110,15 @@ public class DayManager : MonoBehaviour
         OnDayEnded?.Invoke();
         
         Debug.Log($"Day {currentDay} ended.");
+    }
+
+    /// <summary>
+    /// Stops time
+    /// </summary>
+    public void StopDay()
+    {
+        isDayRunning = false;
+        
+        Debug.Log($"Day {currentDay} stopped.");
     }
 }

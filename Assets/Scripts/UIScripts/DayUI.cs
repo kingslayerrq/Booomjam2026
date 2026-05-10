@@ -47,12 +47,10 @@ public class DayUI : MonoBehaviour
 
         if (timeText != null)
         {
-            float totalHoursInDay = dayManager.EndHour - dayManager.StartHour;
-            float currentTotalHours = dayManager.StartHour + (dayManager.NormalizedTime * totalHoursInDay);
-            
-            int hours = Mathf.FloorToInt(currentTotalHours);
-            int minutes = Mathf.FloorToInt((currentTotalHours - hours) * 60f);
-            
+            float currentHour = dayManager.CurrentHour;
+            int hours = Mathf.FloorToInt(currentHour);
+            int minutes = Mathf.FloorToInt((currentHour - hours) * 60f);
+
             timeText.text = string.Format("{0:00}:{1:00}", hours, minutes);
         }
     }

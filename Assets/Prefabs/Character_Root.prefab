@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 431013656252647097}
   - component: {fileID: 509177680904707583}
   - component: {fileID: 8277715881574791063}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Leg_L_Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,7 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 483599290660319463}
   - component: {fileID: 3123702671305302051}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: VisualsContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -147,7 +147,7 @@ GameObject:
   - component: {fileID: 6937174979390740654}
   - component: {fileID: 9152254847355315871}
   - component: {fileID: 3468106384034487203}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Head_Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -237,7 +237,9 @@ GameObject:
   - component: {fileID: 7543538924404267442}
   - component: {fileID: 8822099177078285763}
   - component: {fileID: 3394017557747993572}
-  m_Layer: 0
+  - component: {fileID: 2315953843644465176}
+  - component: {fileID: -1750371048493945489}
+  m_Layer: 3
   m_Name: Character_Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -310,6 +312,32 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &2315953843644465176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3940613829420828962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b5d1c1d56691ff4ab11f45b4a538d91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PrisonerActionController
+--- !u!114 &-1750371048493945489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3940613829420828962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6eb3ef8df9d9e3246b5b83dbdd82220b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HighlightComponent
+  highlightMaterial: {fileID: 2100000, guid: c4dac17800ce4b1287e38f650edec077, type: 2}
+  renderers: []
 --- !u!1 &4404685745156603474
 GameObject:
   m_ObjectHideFlags: 0
@@ -321,7 +349,7 @@ GameObject:
   - component: {fileID: 4940233954623576657}
   - component: {fileID: 5585194453986153615}
   - component: {fileID: 1874921426968950233}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Torso_Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -416,7 +444,7 @@ GameObject:
   - component: {fileID: 460337313774241491}
   - component: {fileID: 533889855325979403}
   - component: {fileID: 4183734189948828696}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Leg_R_Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -506,7 +534,7 @@ GameObject:
   - component: {fileID: 4389802223652303379}
   - component: {fileID: 8956390295266348989}
   - component: {fileID: 2503824777354719856}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Arm_L_Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -596,7 +624,7 @@ GameObject:
   - component: {fileID: 7131992226297528738}
   - component: {fileID: 5960831351531730631}
   - component: {fileID: 7436043795090353658}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Arm_R_Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -675,4 +703,3 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
-

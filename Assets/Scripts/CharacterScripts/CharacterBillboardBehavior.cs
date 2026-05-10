@@ -8,8 +8,14 @@ public class CharacterBillboardBehavior : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (currentCamera == null) return;
+        
         transform.rotation = currentCamera.transform.rotation;
     }
     
-    // TODO: AssignCamera()
+    public void SetCamera(Camera cam)
+    {
+        if (cam == null) return;
+        currentCamera = cam;
+    }
 }
