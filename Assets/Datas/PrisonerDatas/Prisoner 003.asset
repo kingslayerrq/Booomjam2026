@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PrisonerData
   prisonerName: 
   prisonerID: 003
-  assignedCellRoom: Room_03
+  assignedCellRoom: FittingRoom

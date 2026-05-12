@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: SleepAction
   m_EditorClassIdentifier: Assembly-CSharp::SleepAction
   actionName: SleepAction
-  targetRoomName: Room_01
+  targetRoomName: FittingRoom

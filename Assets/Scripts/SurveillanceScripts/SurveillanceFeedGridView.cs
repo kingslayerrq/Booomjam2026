@@ -32,7 +32,7 @@ public class SurveillanceFeedGridView : MonoBehaviour
 
     private void OnClicked()
     {
-        ui.OpenExpandedFeed(feed);
+        ui.TryOpenExpandedFeed(feed);
     }
 
 }

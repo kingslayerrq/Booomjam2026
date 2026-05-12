@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: WorkoutAction
   m_EditorClassIdentifier: Assembly-CSharp::WorkoutAction
   actionName: WorkoutAction
-  targetRoomName: Room_10
+  targetRoomName: FittingRoom
