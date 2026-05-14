@@ -6,6 +6,6 @@ public class PCView : MonoBehaviour, IInteractable
     
     public void Interact()
     {
-        surveillanceUI.Open();
+        surveillanceUI.TryOpen();
     }
 }

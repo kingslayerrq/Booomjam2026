@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 public class SurveillanceCamController : MonoBehaviour
 {
-    [Header("Rotation Speed")]
+    [Header("Camera Rotation Speed")]
     [SerializeField] private float yawSpeed = 25f;
     [SerializeField] private float pitchSpeed = 18f;
 
@@ -11,7 +11,10 @@ public class SurveillanceCamController : MonoBehaviour
     [SerializeField] private float yawLimit = 45f;
     [SerializeField] private float lookUpLimit = 25f;
     [SerializeField] private float lookDownLimit = 30f;
-
+    
+    [Header("Camera Light")]
+    [SerializeField] private SurveillanceCamLightController surveillanceCamLightController;
+    
     [Header("Options")]
     [SerializeField] private bool resetWhenControlStarts = false;
     
@@ -26,6 +29,11 @@ public class SurveillanceCamController : MonoBehaviour
     private void Awake()
     {
         baseLocalRotation = transform.localRotation;
+
+        if (surveillanceCamLightController == null)
+        {
+            surveillanceCamLightController = GetComponent<SurveillanceCamLightController>();
+        }
     }
 
     private void Update()
@@ -34,6 +42,12 @@ public class SurveillanceCamController : MonoBehaviour
             return;
         if (GameManager.IsMenuOpen || GameManager.BlockCamControl || SurveillancePrisonerInteractionPanel.IsAnyOpen)
             return;
+        
+        // Toggle lights
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            surveillanceCamLightController?.ToggleCamLight();
+        }
 
         HandleCameraInput();
         ApplyRotation();
@@ -42,6 +56,12 @@ public class SurveillanceCamController : MonoBehaviour
     public void SetControlled(bool controlled)
     {
         isControlled = controlled;
+
+        if (!isControlled)
+        {
+            surveillanceCamLightController?.TurnOffCamLight();
+            return;
+        }
 
         if (isControlled && resetWhenControlStarts)
         {

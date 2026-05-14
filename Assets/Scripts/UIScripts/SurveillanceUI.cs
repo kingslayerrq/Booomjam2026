@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,17 @@ public class SurveillanceUI : MonoBehaviour
     private static readonly int ZoomProperty = Shader.PropertyToID("_Zoom");
 
     [SerializeField] private SurveillanceManager surveillanceManager;
+    
+    [Header("Transition Settings")]
+    [SerializeField] private CanvasGroup rootCanvasGroup;
+    [SerializeField] private RectTransform rootTransform;
+    [SerializeField] private CanvasGroup staticOverlayCanvasGroup;
+    [SerializeField] private GameObject staticOverlayObject;
+    [SerializeField] private float openDuration;
+    [SerializeField] private float feedSwitchDuration;
+    
+    private bool isTransitioning;
+    private Coroutine transitionRoutine;
 
     [Header("Grid View Panel")]
     [SerializeField] private GameObject surveillancePanel;
@@ -51,8 +63,9 @@ public class SurveillanceUI : MonoBehaviour
     
     private void Update()
     {
-        if (!IsOpen)
-            return;
+        if (isTransitioning) return;
+        
+        if (!IsOpen) return;
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
@@ -123,6 +136,59 @@ public class SurveillanceUI : MonoBehaviour
             }
         }
     }
+
+    public void TryOpenExpandedFeed(SurveillanceFeed feed)
+    {
+        if (!IsOpen || isTransitioning || feed == null) return;
+
+        if (transitionRoutine != null)
+        {
+            StopCoroutine(transitionRoutine);
+        }
+        transitionRoutine = StartCoroutine(SwitchFeedRoutine(feed));
+    }
+    
+    private IEnumerator SwitchFeedRoutine(SurveillanceFeed feed)
+    {
+        isTransitioning = true;
+
+        HidePrisonerInteractionPanel();
+        ClearCurrentPrisonerTarget();
+        DisableActiveCameraControl();
+
+        staticOverlayObject.SetActive(true);
+
+        yield return FadeStaticOverlay(0f, 1f, feedSwitchDuration * 0.4f);
+
+        ClearActiveFeed();
+        ApplyActiveFeed(feed);
+
+        yield return FadeStaticOverlay(1f, 0f, feedSwitchDuration * 0.6f);
+
+        staticOverlayObject.SetActive(false);
+
+        isTransitioning = false;
+        transitionRoutine = null;
+    }
+
+    private IEnumerator FadeStaticOverlay(float from, float to, float duration)
+    {
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(timer / duration);
+            float flicker = Random.Range(-0.15f, 0.15f);
+            
+            staticOverlayCanvasGroup.alpha = Mathf.Clamp01(Mathf.Lerp(from, to, t) + flicker);
+
+            yield return null;
+        }
+
+        staticOverlayCanvasGroup.alpha = to;
+    }
+
     
     public void OpenExpandedFeed(SurveillanceFeed feed)
     {
@@ -130,34 +196,34 @@ public class SurveillanceUI : MonoBehaviour
         ClearCurrentPrisonerTarget();
         DisableActiveCameraControl();
 
+        ApplyActiveFeed(feed);
+    }
+    
+    private void ApplyActiveFeed(SurveillanceFeed feed)
+    {
         ActiveFeed = feed;
         ActiveCamera = feed.camera;
         ActiveRoom = RoomManager.Instance != null
             ? RoomManager.Instance.GetRoomByName(feed.displayName)
             : null;
 
-        // surveillancePanel.SetActive(false);
         expandedPanel.SetActive(true);
 
         expandedImage.texture = feed.renderTexture;
         expandedImage.material = fisheyeMaterial;
         expandedText.text = feed.displayName;
-        
-        // Get cam controll
+
         if (ActiveCamera != null)
         {
             activeCameraController = ActiveCamera.GetComponent<SurveillanceCamController>();
 
             if (activeCameraController != null)
-            {
                 activeCameraController.SetControlled(true);
-            }
             else
-            {
                 Debug.LogWarning($"{ActiveCamera.name} has no SurveillanceCamController.");
-            }
         }
     }
+
 
     public void TryOpenPrisonerInteraction(PointerEventData eventData)
     {
@@ -180,7 +246,60 @@ public class SurveillanceUI : MonoBehaviour
         expandedPanel.SetActive(false);
         surveillancePanel.SetActive(true);
     }
-    
+
+    public void TryOpen()
+    {
+        if (IsOpen || isTransitioning) return;
+
+        if (transitionRoutine != null)
+        {
+            StopCoroutine(transitionRoutine);
+        }
+
+        transitionRoutine = StartCoroutine(OpenCoroutine());
+    }
+
+    private IEnumerator OpenCoroutine()
+    {
+        isTransitioning = true;
+        IsOpen = true;
+
+        surveillancePanel.SetActive(true);
+        IsFeedGridViewPanelActive = true;
+        expandedPanel.SetActive(false);
+        HidePrisonerInteractionPanel();
+        ClearActiveFeed();
+
+        rootCanvasGroup.alpha = 0f;
+        rootCanvasGroup.interactable = false;
+        rootCanvasGroup.blocksRaycasts = false;
+
+        Vector3 startScale = Vector3.one * 0.96f;
+        Vector3 endScale = Vector3.one;
+        rootTransform.localScale = startScale;
+
+        float timer = 0f;
+
+        while (timer < openDuration)
+        {
+            timer += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(timer / openDuration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+
+            rootCanvasGroup.alpha = eased;
+            rootTransform.localScale = Vector3.Lerp(startScale, endScale, eased);
+
+            yield return null;
+        }
+
+        rootCanvasGroup.alpha = 1f;
+        rootTransform.localScale = endScale;
+        rootCanvasGroup.interactable = true;
+        rootCanvasGroup.blocksRaycasts = true;
+
+        isTransitioning = false;
+        transitionRoutine = null;
+    }
     public void Open()
     {
         IsOpen = true;
