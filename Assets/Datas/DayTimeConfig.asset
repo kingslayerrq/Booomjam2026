@@ -13,6 +13,23 @@ MonoBehaviour:
   m_Name: DayTimeConfig
   m_EditorClassIdentifier: Assembly-CSharp::DayTimeConfig
   dayFormat: 24
+  daySegments:
+  - gameStartHour: 8
+    gameEndHour: 10
+    realDurationInSeconds: 60
+  - gameStartHour: 10
+    gameEndHour: 12
+    realDurationInSeconds: 60
+  - gameStartHour: 12
+    gameEndHour: 14
+    realDurationInSeconds: 60
+  - gameStartHour: 14
+    gameEndHour: 16
+    realDurationInSeconds: 60
+  nightSegments:
+  - gameStartHour: 16
+    gameEndHour: 24
+    realDurationInSeconds: 60
   segments:
   - gameStartHour: 0
     gameEndHour: 6

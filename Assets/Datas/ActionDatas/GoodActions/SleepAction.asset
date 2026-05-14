@@ -13,4 +13,12 @@ MonoBehaviour:
   m_Name: SleepAction
   m_EditorClassIdentifier: Assembly-CSharp::SleepAction
   actionName: SleepAction
-  targetRoomName: FittingRoom
+  targetRoomName: Room_12
+  moveSpeed: 1.5
+  wanderInTargetRoom: 0
+  useRoomWanderAnchors: 1
+  useCustomWanderCenter: 0
+  wanderCenterLocalPosition: {x: 0, y: 0, z: 0}
+  wanderRadius: 1.5
+  wanderFrequency: 3
+  useAssignedCellRoom: 1

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Richard\\\\Documents\\\\GitHub\\\\Booomjam\\\\My project\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Richard\\\\Documents\\\\GitHub\\\\Booomjam\\\\My project\\\\Assets\\\\Scripts\\\\ManagerScripts\" -File)",
+      "Bash(Select-Object Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Richard\\\\Documents\\\\GitHub\\\\Booomjam\\\\My project\\\\Assets\\\\Scripts\\\\ManagerScripts\" | ForEach-Object { $_.Name })"
+    ]
+  }
+}

@@ -847,6 +847,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff1294dea5d170f49b961a9d6dc91e5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SurveillanceCamController
+  playerResource: {fileID: 0}
+  camBatteryConsumption: 0.01
   yawSpeed: 25
   pitchSpeed: 18
   yawLimit: 45

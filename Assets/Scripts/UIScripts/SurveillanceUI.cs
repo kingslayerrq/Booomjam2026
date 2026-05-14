@@ -36,7 +36,12 @@ public class SurveillanceUI : MonoBehaviour
     [Header("Visuals")]
     [SerializeField] private Material fisheyeMaterial;
 
+    [Header("Evidence")]
+    [SerializeField] private PrisonerEvidenceManager evidenceManager;
+    [SerializeField] private SurveillanceEvidenceOverlay evidenceOverlay;
+
     [Header("Prisoner Interaction")]
+    [SerializeField] private DayManager dayManager;
     [SerializeField] private SurveillancePrisonerInteractionPanel prisonerInteractionPanel;
     [SerializeField] private LayerMask prisonerInteractionLayerMask = Physics.DefaultRaycastLayers;
     [SerializeField] private LayerMask prisonerOcclusionLayerMask;
@@ -47,6 +52,9 @@ public class SurveillanceUI : MonoBehaviour
     private readonly List<RaycastResult> uiRaycastResults = new List<RaycastResult>(16);
     private PrisonerActionController currentPrisonerTarget;
     private HighlightComponent currentPrisonerHighlight;
+    private PrisonerActionController observedHighRiskPrisoner;
+    private HighRiskEvidenceType observedHighRiskType;
+    private float highRiskObserveTimer;
 
     public static bool IsFeedGridViewPanelActive {get; private set;}
     public SurveillanceFeed ActiveFeed { get; private set; }
@@ -56,6 +64,7 @@ public class SurveillanceUI : MonoBehaviour
     
     private void Start()
     {
+        EnsureEvidenceSetup();
         EnsurePrisonerInteractionSetup();
         Close();
         SetupFeedsGrid();
@@ -84,10 +93,12 @@ public class SurveillanceUI : MonoBehaviour
         if (expandedPanel != null && expandedPanel.activeInHierarchy)
         {
             UpdateCurrentPrisonerTarget();
+            UpdateEvidenceEffects();
         }
         else
         {
             ClearCurrentPrisonerTarget();
+            ClearEvidenceObservation();
         }
     }
     
@@ -120,6 +131,28 @@ public class SurveillanceUI : MonoBehaviour
         else if (prisonerInteractionPanel != null && expandedImage != null)
         {
             prisonerInteractionPanel.SetClampBounds(expandedImage.rectTransform);
+        }
+    }
+
+    private void EnsureEvidenceSetup()
+    {
+        if (evidenceManager == null)
+        {
+            evidenceManager = PrisonerEvidenceManager.Instance;
+        }
+
+        if (evidenceOverlay == null)
+        {
+            evidenceOverlay = GetComponent<SurveillanceEvidenceOverlay>();
+            if (evidenceOverlay == null)
+            {
+                evidenceOverlay = gameObject.AddComponent<SurveillanceEvidenceOverlay>();
+            }
+        }
+
+        if (expandedImage != null && evidenceOverlay != null)
+        {
+            evidenceOverlay.EnsureSetup(expandedImage.rectTransform);
         }
     }
 
@@ -201,11 +234,10 @@ public class SurveillanceUI : MonoBehaviour
     
     private void ApplyActiveFeed(SurveillanceFeed feed)
     {
+        ClearEvidenceObservation();
         ActiveFeed = feed;
         ActiveCamera = feed.camera;
-        ActiveRoom = RoomManager.Instance != null
-            ? RoomManager.Instance.GetRoomByName(feed.displayName)
-            : null;
+        ActiveRoom = ResolveActiveRoom(feed);
 
         expandedPanel.SetActive(true);
 
@@ -335,7 +367,8 @@ public class SurveillanceUI : MonoBehaviour
                && expandedImage != null
                && ActiveCamera != null
                && prisonerInteractionPanel != null
-               && eventData != null;
+               && eventData != null
+               && dayManager != null && dayManager.IsDayPhase;
     }
 
     private void UpdateCurrentPrisonerTarget()
@@ -400,9 +433,21 @@ public class SurveillanceUI : MonoBehaviour
                && expandedPanel.activeInHierarchy
                && expandedImage != null
                && ActiveCamera != null
-               && ActiveRoom != null
                && Mouse.current != null
-               && !SurveillancePrisonerInteractionPanel.IsAnyOpen;
+               && !SurveillancePrisonerInteractionPanel.IsAnyOpen
+               && dayManager != null && dayManager.IsDayPhase;
+    }
+
+    private GameObject ResolveActiveRoom(SurveillanceFeed feed)
+    {
+        if (RoomManager.Instance == null || feed == null)
+            return null;
+
+        string roomName = string.IsNullOrWhiteSpace(feed.roomName)
+            ? feed.displayName
+            : feed.roomName;
+
+        return RoomManager.Instance.GetRoomByName(roomName);
     }
 
     private bool TryGetSourceFeedUv(Vector2 screenPosition, Camera eventCamera, out Vector2 sourceUv)
@@ -491,7 +536,7 @@ public class SurveillanceUI : MonoBehaviour
     private bool IsPrisonerInActiveRoom(PrisonerActionController prisoner)
     {
         if (ActiveRoom == null)
-            return false;
+            return true;
 
         return prisoner.transform == ActiveRoom.transform || prisoner.transform.IsChildOf(ActiveRoom.transform);
     }
@@ -546,8 +591,64 @@ public class SurveillanceUI : MonoBehaviour
 
     private void ClearActiveFeed()
     {
+        ClearEvidenceObservation();
+        if (evidenceOverlay != null)
+        {
+            evidenceOverlay.SetNightInterference(0f);
+        }
+
         ActiveFeed = null;
         ActiveCamera = null;
         ActiveRoom = null;
+    }
+
+    private void UpdateEvidenceEffects()
+    {
+        EnsureEvidenceSetup();
+
+        if (evidenceManager == null || evidenceOverlay == null)
+            return;
+
+        evidenceOverlay.SetNightInterference(evidenceManager.NightFeedInterferenceIntensity);
+
+        if (!evidenceManager.TryGetVisibleHighRiskEvidence(
+                ActiveRoom,
+                out PrisonerActionController highRiskPrisoner,
+                out HighRiskEvidenceDefinition highRiskDefinition))
+        {
+            ClearEvidenceObservation();
+            return;
+        }
+
+        if (observedHighRiskPrisoner != highRiskPrisoner
+            || observedHighRiskType != highRiskDefinition.EvidenceType)
+        {
+            observedHighRiskPrisoner = highRiskPrisoner;
+            observedHighRiskType = highRiskDefinition.EvidenceType;
+            highRiskObserveTimer = 0f;
+            evidenceOverlay.ClearDayCue();
+        }
+
+        highRiskObserveTimer += Time.deltaTime;
+        float requiredObserveSeconds = highRiskDefinition.ObserveSeconds > 0f
+            ? highRiskDefinition.ObserveSeconds
+            : evidenceManager.DefaultHighRiskObserveSeconds;
+
+        if (highRiskObserveTimer >= requiredObserveSeconds)
+        {
+            evidenceOverlay.ShowDayCue(highRiskDefinition);
+        }
+    }
+
+    private void ClearEvidenceObservation()
+    {
+        observedHighRiskPrisoner = null;
+        observedHighRiskType = HighRiskEvidenceType.None;
+        highRiskObserveTimer = 0f;
+
+        if (evidenceOverlay != null)
+        {
+            evidenceOverlay.ClearDayCue();
+        }
     }
 }

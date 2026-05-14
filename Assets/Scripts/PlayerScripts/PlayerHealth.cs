@@ -28,9 +28,15 @@ public class PlayerHealth : MonoBehaviour
         TakeDamage(energyDepletionDamage);
     }
 
+    public void TakeSabotageDamage(int damage)
+    {
+        TakeDamage(damage);
+    }
+
     private void TakeDamage(int damage)
     {
         currentHealth = Mathf.Max(currentHealth - damage, 0);
+        Debug.Log($"Took  {damage} damage, remaining {currentHealth} health.");
         if (currentHealth <= 0)
         {
             OnPlayerHealthDepleted?.Invoke();

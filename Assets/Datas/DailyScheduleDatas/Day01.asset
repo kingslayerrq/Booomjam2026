@@ -13,15 +13,41 @@ MonoBehaviour:
   m_Name: Day01
   m_EditorClassIdentifier: Assembly-CSharp::DayScheduleConfig
   scheduleBlocks:
-  - startHour: 0
+  - startHour: 8
+    endHour: 10
+    goodActions:
+    - {fileID: 11400000, guid: ddb30a7e3f7fdbb4fbec8fbc7c521fdc, type: 2}
+    badActions:
+    - {fileID: 11400000, guid: 7d2044bdca1e4b58b8df0955d80769ea, type: 2}
+  - startHour: 10
     endHour: 12
     goodActions:
-    - {fileID: 11400000, guid: 20af9b177f5d4de458a85339e790c6b1, type: 2}
+    - {fileID: 11400000, guid: ddb30a7e3f7fdbb4fbec8fbc7c521fdc, type: 2}
     badActions:
-    - {fileID: 11400000, guid: bb1b901440413da42a7f28b4801ed010, type: 2}
+    - {fileID: 11400000, guid: 4d75d03efbb3485a8fbcb892719a01a6, type: 2}
   - startHour: 12
-    endHour: 24
+    endHour: 14
     goodActions:
-    - {fileID: 11400000, guid: 20af9b177f5d4de458a85339e790c6b1, type: 2}
+    - {fileID: 11400000, guid: ddb30a7e3f7fdbb4fbec8fbc7c521fdc, type: 2}
+    badActions:
+    - {fileID: 11400000, guid: 0e5299837ed2491db7dcc8c58cb81b27, type: 2}
+  - startHour: 14
+    endHour: 16
+    goodActions:
+    - {fileID: 11400000, guid: ddb30a7e3f7fdbb4fbec8fbc7c521fdc, type: 2}
     badActions:
     - {fileID: 11400000, guid: bb1b901440413da42a7f28b4801ed010, type: 2}
+  highRiskEvidencePool:
+  - {fileID: 11400000, guid: e44fcef2eafa4ea1bbc52e0c2bbcbe38, type: 2}
+  - {fileID: 11400000, guid: 8a2d7f77d6fa4d8b8adfd9b2efba7ad9, type: 2}
+  - {fileID: 11400000, guid: e77a746a8a31435486b6bf74aa5ca93e, type: 2}
+  auxiliaryEvidencePool:
+  - {fileID: 11400000, guid: 20e55d25c5324689a4f91f15fe86b572, type: 2}
+  - {fileID: 11400000, guid: 7a19705da50f4c70af74af73a61f7a32, type: 2}
+  - {fileID: 11400000, guid: 18e02f1cad93444fa286941767dd2d06, type: 2}
+  - {fileID: 11400000, guid: 0ae1701305a6425fb7ca87c931246cc6, type: 2}
+  - {fileID: 11400000, guid: bfd14ca5eb5d4def8c6504c03301ee43, type: 2}
+  - {fileID: 11400000, guid: 221b46601eb9474cac0559c05f57e171, type: 2}
+  goodAuxiliaryChance: 0.2
+  badAuxiliaryMinPerDay: 1
+  badAuxiliaryMaxPerDay: 4

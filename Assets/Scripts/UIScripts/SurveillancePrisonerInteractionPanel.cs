@@ -223,7 +223,8 @@ public class SurveillancePrisonerInteractionPanel : MonoBehaviour
     {
         if (selectedPrisoner != null && selectedPrisoner.Prisoner != null)
         {
-            selectedPrisoner.Prisoner.LockUp();
+            selectedPrisoner.LockUpPrisoner();
+            PrisonerEvidenceManager.Instance.HandlePrisonerLockedUp(selectedPrisoner);
             Debug.Log($"[Surveillance] Lock Them Up selected for prisoner {selectedPrisoner.Prisoner.PrisonerID}.");
         }
 

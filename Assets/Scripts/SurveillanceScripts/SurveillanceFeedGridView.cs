@@ -23,7 +23,10 @@ public class SurveillanceFeedGridView : MonoBehaviour
             feedImage.material = feedMaterial;
         }
         
-        feedTitle.text = feed.displayName;
+        if (feedTitle != null)
+        {
+            feedTitle.text = feed.RoomLabel;
+        }
         
         
         button.onClick.RemoveAllListeners();

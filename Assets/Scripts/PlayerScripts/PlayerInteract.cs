@@ -69,8 +69,16 @@ public class PlayerInteract : MonoBehaviour
             IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
             if (interactable == null) continue;
 
-            // perpendicular distance from the object to the center ray
             Vector3 toObject = hit.collider.bounds.center - playerCamera.position;
+            
+            // If the dot product is negative, the object is behind the camera.
+            if (Vector3.Dot(playerCamera.forward, toObject) <= 0)
+            {
+                continue;
+            }
+            // ---------------
+
+            // perpendicular distance from the object to the center ray
             Vector3 projected = Vector3.Project(toObject, playerCamera.forward);
             float perpDist = (toObject - projected).magnitude;
 

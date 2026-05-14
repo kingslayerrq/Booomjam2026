@@ -34,7 +34,6 @@ public class GameManager : MonoBehaviour
         if (dayManager != null)
         {
             dayManager.OnDayEnded += HandleDayEnd;
-            dayManager.OnHalfDayPassed += HandleHalfDayPassed;
         }
 
         if (playerHealth != null)
@@ -50,7 +49,6 @@ public class GameManager : MonoBehaviour
         if (dayManager != null)
         {
             dayManager.OnDayEnded -= HandleDayEnd;
-            dayManager.OnHalfDayPassed -= HandleHalfDayPassed;
         }
         
         if (playerHealth != null)
@@ -116,9 +114,13 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ContinueFromMidDay()
     {
+        ContinueFromNight();
+    }
+
+    public void ContinueFromNight()
+    {
         HideGameStatePanels();
-        dayManager.StartDay(dayManager.CurrentDay, false);
-        SaveCurrentGame();
+        dayManager.StartDay(dayManager.CurrentDay, DayPhase.Night);
     }
 
     private void HandleDayEnd()
@@ -135,12 +137,6 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    private void HandleHalfDayPassed()
-    {
-        HideGameStatePanels();
-        halfDayCompletePanel.SetActive(true);
-    }
-
     private void Start()
     {
         if (loadSaveOnStart && SaveSystem.TryLoad(out GameSaveData saveData))
@@ -168,7 +164,7 @@ public class GameManager : MonoBehaviour
         playerHealth.ResetHealth();
         if (prisonerManager != null) prisonerManager.InitPrisoners();
         
-        dayManager.StartDay(1, true);
+        dayManager.StartDay(1, DayPhase.Day);
 
         SaveCurrentGame();
     }
@@ -182,7 +178,6 @@ public class GameManager : MonoBehaviour
     {
         GameSaveData saveData = new GameSaveData(
             dayManager.CurrentDay,
-            dayManager.IsMorning,
             playerResource.CurrentBatteryLevel,
             playerHealth.CurrentHealth
         );
@@ -220,23 +215,14 @@ public class GameManager : MonoBehaviour
     {
         HideGameStatePanels();
         SetMenuOpen(false);
-        
-        // load save values
+
         playerResource.SetBatteryLevel(saveData.batteryLevel);
         playerHealth.SetHealth(saveData.playerHealth);
-        
-        // setup prisoner 
+
         if (prisonerManager != null)
-        {
             prisonerManager.InitPrisoners();
-        }
-        
-        dayManager.StartDay(saveData.currentDay, saveData.isMorning);
-        
-        if (!saveData.isMorning)
-        {
-            prisonerManager.SetupPrisonerForDay(saveData.currentDay);
-        }
+
+        dayManager.StartDay(saveData.currentDay, DayPhase.Day);
     }
     
     private void HideGameStatePanels()

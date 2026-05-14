@@ -15,6 +15,8 @@ public class PlayerResource : MonoBehaviour
     [SerializeField] private float maxEnergy;
     [Tooltip("How long in seconds to fully deplete energy bar")]
     [SerializeField] private float secondsToDepleteEnergy;
+    private float baseMaxEnergy;
+    private float temporaryMaxEnergyPenalty;
     
     [Header("References")]
     [SerializeField] private DayManager dayManager;
@@ -30,6 +32,8 @@ public class PlayerResource : MonoBehaviour
 
     private void Awake()
     {
+        baseMaxEnergy = maxEnergy;
+
         if (playerHealth == null)
         {
             playerHealth = GetComponent<PlayerHealth>();
@@ -40,8 +44,8 @@ public class PlayerResource : MonoBehaviour
     {
         if (dayManager != null)
         {
-            dayManager.OnMorningStarted += ResetEnergy;
-            dayManager.OnAfternoonStarted += ResetEnergy;
+            dayManager.OnDayStarted += ResetEnergyForNewDay;
+            dayManager.OnNightStarted += ResetEnergy;
         }
     }
 
@@ -49,23 +53,24 @@ public class PlayerResource : MonoBehaviour
     {
         if (dayManager != null)
         {
-            dayManager.OnMorningStarted -= ResetEnergy;
-            dayManager.OnAfternoonStarted -= ResetEnergy;
+            dayManager.OnDayStarted -= ResetEnergyForNewDay;
+            dayManager.OnNightStarted -= ResetEnergy;
         }
     }
 
     private void Update()
     {
         if (dayManager == null) return;
-        if (!dayManager.IsDayRunning ) return;
+        if (!dayManager.IsTimeRunning) return;
         if (drainEnergy)
         {
             ReduceEnergy((maxEnergy / secondsToDepleteEnergy) * Time.deltaTime);
             
             if (currentEnergy <= 0)
             {
-                playerHealth.TakeDamageFromEnergyDepletion();
-                dayManager.ForceEndHalfDay();
+                if (dayManager.IsNightPhase)
+                    playerHealth.TakeDamageFromEnergyDepletion();
+                dayManager.ForceEndCurrentPhase();
             }
         }
     }
@@ -82,6 +87,12 @@ public class PlayerResource : MonoBehaviour
     {
         currentEnergy = maxEnergy;
         OnEnergyChanged?.Invoke();
+    }
+
+    private void ResetEnergyForNewDay()
+    {
+        ClearTemporaryMaxEnergyPenalty();
+        ResetEnergy();
     }
 
     private void ResetBattery()
@@ -140,7 +151,26 @@ public class PlayerResource : MonoBehaviour
 
     public void SetMaxEnergy(float value)
     {
-        maxEnergy = value;
+        baseMaxEnergy = Mathf.Max(0f, value);
+        RecalculateMaxEnergy();
+    }
+
+    public void AddTemporaryMaxEnergyPenalty(float value)
+    {
+        temporaryMaxEnergyPenalty = Mathf.Max(temporaryMaxEnergyPenalty + value, 0f);
+        RecalculateMaxEnergy();
+    }
+
+    public void ClearTemporaryMaxEnergyPenalty()
+    {
+        temporaryMaxEnergyPenalty = 0f;
+        RecalculateMaxEnergy();
+    }
+
+    private void RecalculateMaxEnergy()
+    {
+        maxEnergy = Mathf.Max(1f, baseMaxEnergy - temporaryMaxEnergyPenalty);
+        currentEnergy = Mathf.Min(currentEnergy, maxEnergy);
         OnEnergyChanged?.Invoke();
     }
 
