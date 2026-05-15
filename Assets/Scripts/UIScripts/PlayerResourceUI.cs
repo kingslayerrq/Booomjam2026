@@ -7,8 +7,8 @@ public class PlayerResourceUI : MonoBehaviour
 {
     [SerializeField] private PlayerResource playerResource;
     
-    [Header("UI")]
-    [SerializeField] private TMP_Text batteryText;
+    [Header("Battery Segments (Left)")]
+    [SerializeField] private Image[] batterySegments;
 
     [SerializeField] private Image energyImageFill;
 
@@ -34,9 +34,13 @@ public class PlayerResourceUI : MonoBehaviour
 
     private void UpdateBatteryLevelUI()
     {
-        if (playerResource == null) return;
-        if (batteryText == null) return;
-        batteryText.text = $"Battery level: {playerResource.CurrentBatteryLevel}/{playerResource.MaxBatteryLevel}";
+        if (playerResource == null || batterySegments == null || batterySegments.Length == 0) return;
+
+        // Loop through all assigned segment images
+        for (int i = 0; i < batterySegments.Length; i++)
+        {
+            batterySegments[i].enabled = (i < playerResource.CurrentBatteryLevel);
+        }
     }
 
     private void UpdateEnergyUI()

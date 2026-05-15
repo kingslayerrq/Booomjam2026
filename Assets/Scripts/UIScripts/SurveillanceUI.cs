@@ -27,11 +27,12 @@ public class SurveillanceUI : MonoBehaviour
     [Header("Grid View Panel")]
     [SerializeField] private GameObject surveillancePanel;
     [SerializeField] private SurveillanceFeedGridView[] feedGridViews;
+    [SerializeField] private ToggleGroup feedToggleGroup;
     
     [Header("Expanded View Panel")]
     [SerializeField] private GameObject expandedPanel;
     [SerializeField] private RawImage expandedImage;
-    [SerializeField] private TMP_Text expandedText;
+    //[SerializeField] private TMP_Text expandedText;
     
     [Header("Visuals")]
     [SerializeField] private Material fisheyeMaterial;
@@ -158,14 +159,79 @@ public class SurveillanceUI : MonoBehaviour
 
     private void SetupFeedsGrid()
     {
+        if (surveillanceManager == null)
+        {
+            Debug.LogError("[SurveillanceUI] SurveillanceManager is not assigned.", this);
+            return;
+        }
+
+        if (feedGridViews == null || feedGridViews.Length == 0)
+        {
+            Debug.LogWarning("[SurveillanceUI] No feed grid views are assigned.", this);
+            return;
+        }
+
+        EnsureFeedToggleGroup();
+
         SurveillanceFeed[] feeds = surveillanceManager.Feeds;
+
         for (int i = 0; i < feedGridViews.Length; i++)
         {
+            if (feedGridViews[i] == null)
+            {
+                Debug.LogWarning($"[SurveillanceUI] Feed grid view slot {i} is not assigned.", this);
+                continue;
+            }
+
             bool hasFeed = i < feeds.Length;
             feedGridViews[i].gameObject.SetActive(hasFeed);
             if (hasFeed)
             {
-                feedGridViews[i].Setup(feeds[i], this, fisheyeMaterial);
+                feedGridViews[i].Setup(feeds[i], this, feedToggleGroup);
+            }
+        }
+
+        ResetFeedToggles();
+    }
+
+    private void EnsureFeedToggleGroup()
+    {
+        if (feedToggleGroup != null)
+            return;
+
+        Transform searchRoot = surveillancePanel != null ? surveillancePanel.transform : transform;
+        feedToggleGroup = searchRoot.GetComponentInChildren<ToggleGroup>(true);
+
+        if (feedToggleGroup == null && surveillancePanel != null)
+        {
+            feedToggleGroup = surveillancePanel.AddComponent<ToggleGroup>();
+        }
+
+        if (feedToggleGroup == null)
+        {
+            Debug.LogWarning("[SurveillanceUI] Feed ToggleGroup is not assigned and could not be created.", this);
+            return;
+        }
+
+        feedToggleGroup.allowSwitchOff = true;
+    }
+
+    private void ResetFeedToggles()
+    {
+        if (feedToggleGroup != null)
+        {
+            feedToggleGroup.allowSwitchOff = true;
+            feedToggleGroup.SetAllTogglesOff(false);
+        }
+
+        if (feedGridViews == null)
+            return;
+
+        for (int i = 0; i < feedGridViews.Length; i++)
+        {
+            if (feedGridViews[i] != null)
+            {
+                feedGridViews[i].SetToggleOffWithoutNotify();
             }
         }
     }
@@ -173,6 +239,9 @@ public class SurveillanceUI : MonoBehaviour
     public void TryOpenExpandedFeed(SurveillanceFeed feed)
     {
         if (!IsOpen || isTransitioning || feed == null) return;
+
+        // Optimization: Don't restart transition if clicking the already active feed
+        if (ActiveFeed == feed && expandedPanel.activeInHierarchy) return;
 
         if (transitionRoutine != null)
         {
@@ -243,7 +312,7 @@ public class SurveillanceUI : MonoBehaviour
 
         expandedImage.texture = feed.renderTexture;
         expandedImage.material = fisheyeMaterial;
-        expandedText.text = feed.displayName;
+        // expandedText.text = feed.displayName;
 
         if (ActiveCamera != null)
         {
@@ -270,13 +339,12 @@ public class SurveillanceUI : MonoBehaviour
     {
         HidePrisonerInteractionPanel();
         ClearCurrentPrisonerTarget();
-
-        // Remove cam controll
         DisableActiveCameraControl();
         ClearActiveFeed();
         
         expandedPanel.SetActive(false);
         surveillancePanel.SetActive(true);
+        ResetFeedToggles();
     }
 
     public void TryOpen()
@@ -301,6 +369,7 @@ public class SurveillanceUI : MonoBehaviour
         expandedPanel.SetActive(false);
         HidePrisonerInteractionPanel();
         ClearActiveFeed();
+        ResetFeedToggles();
 
         rootCanvasGroup.alpha = 0f;
         rootCanvasGroup.interactable = false;
@@ -341,6 +410,7 @@ public class SurveillanceUI : MonoBehaviour
         expandedPanel.SetActive(false);
         HidePrisonerInteractionPanel();
         ClearActiveFeed();
+        ResetFeedToggles();
     }
 
     public void Close()
@@ -357,6 +427,7 @@ public class SurveillanceUI : MonoBehaviour
         surveillancePanel.SetActive(false);
         IsFeedGridViewPanelActive = false;
         expandedPanel.SetActive(false);
+        ResetFeedToggles();
     }
 
     private bool CanProcessExpandedFeedClick(PointerEventData eventData)

@@ -140,7 +140,7 @@ public class PrisonerManager : MonoBehaviour
     {
         List<Prisoner> allPrisonersCopy = new List<Prisoner>(prisonerList);
 
-        int num = Mathf.Min(badPrisonersPerDay[currentDay], allPrisonersCopy.Count);
+        int num = Mathf.Min(badPrisonersPerDay[currentDay-1], allPrisonersCopy.Count);
         Shuffle(allPrisonersCopy);
 
         for (int i = 0; i < num; i++)
@@ -287,9 +287,19 @@ public class PrisonerManager : MonoBehaviour
     /// </summary>
     private int DetermineConcreteBadCount(int day)
     {
+        int result;
         if (day <= earlyGameDayThreshold)
-            return 1;
-        return Random.value < 0.5f ? 1 : 0;
+        {
+            result = 1;
+        }
+        else
+        {
+            float roll = Random.value;
+            result = roll < 0.5f ? 1 : 0;
+            Debug.Log($"[PrisonerManager] Day {day} concrete bad roll: {roll:F3} → {result}");
+        }
+        Debug.Log($"[PrisonerManager] Day {day} concreteBadCount={result} (threshold={earlyGameDayThreshold})");
+        return result;
     }
 
     private static PrisonerAction PickRandomAction(IReadOnlyList<PrisonerAction> actions)

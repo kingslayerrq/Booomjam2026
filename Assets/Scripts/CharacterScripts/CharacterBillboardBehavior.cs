@@ -23,7 +23,7 @@ public class CharacterBillboardBehavior : MonoBehaviour
 
         if (followCameraRotation)
         {
-            // transform.rotation = currentCamera.transform.rotation;
+            transform.rotation = currentCamera.transform.rotation;
             Vector3 targetPos = currentCamera.transform.position;
             targetPos.y = transform.position.y; // Lock the height so it doesn't tilt up/down
             transform.LookAt(targetPos);

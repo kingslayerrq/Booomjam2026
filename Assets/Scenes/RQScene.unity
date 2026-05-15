@@ -1550,7 +1550,9 @@ MonoBehaviour:
   drainEnergy: 1
   currentEnergy: 0
   maxEnergy: 100
-  secondsToDepleteEnergy: 20
+  dayEnergyDrainPerSecond: 5
+  nightEnergyDrainPerSecond: 5
+  energyDrainWindows: []
   dayManager: {fileID: 35775898}
   playerHealth: {fileID: 113147766}
 --- !u!114 &113147766

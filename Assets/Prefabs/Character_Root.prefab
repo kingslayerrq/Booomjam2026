@@ -137,7 +137,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterBillboardBehavior
   currentCamera: {fileID: 0}
-  followCameraRotation: 0
+  followCameraRotation: 1
   col: {fileID: 0}
 --- !u!114 &5383567924098785548
 MonoBehaviour:

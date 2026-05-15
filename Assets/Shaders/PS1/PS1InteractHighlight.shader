@@ -21,7 +21,7 @@ Shader "PS1/InteractHighlight"
             "Queue" = "Geometry"
         }
 
-        Cull Back
+        Cull Off
         ZWrite On
         ZTest LEqual
 

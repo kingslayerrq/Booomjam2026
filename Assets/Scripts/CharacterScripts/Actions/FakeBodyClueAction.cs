@@ -70,6 +70,7 @@ public class FakeBodyClueAction : PrisonerAction
             return;
 
         dayManager.OnNightStarted += ResolveMissedClues;
+        dayManager.OnDayStarted += CleanupStaleFakeBodies;
         subscribedDayManagers.Add(dayManager);
     }
 
@@ -88,6 +89,13 @@ public class FakeBodyClueAction : PrisonerAction
 
             DestroyFakeBody(prisonerActionController);
         }
+    }
+
+    private void CleanupStaleFakeBodies()
+    {
+        var controllers = new List<PrisonerActionController>(activeFakeBodies.Keys);
+        foreach (var pac in controllers)
+            DestroyFakeBody(pac);
     }
 
     private void DestroyFakeBody(PrisonerActionController prisonerActionController)

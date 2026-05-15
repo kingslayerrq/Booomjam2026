@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class NightAttackManager : MonoBehaviour
 {
@@ -29,6 +31,7 @@ public class NightAttackManager : MonoBehaviour
 
     public IReadOnlyDictionary<DoorInteractable, float> ActiveDoorTimers => BuildPublicTimers();
     public IReadOnlyList<NightAttackerController> ActiveAttackers => activeAttackers;
+    public event Action OnDoorBreached;
 
     private void OnEnable()
     {
@@ -219,8 +222,7 @@ public class NightAttackManager : MonoBehaviour
         else
         {
             Debug.Log("[NightAttackManager] Door was open — player takes damage, night ending.");
-            playerHealth?.TakeSabotageDamage(1);
-            dayManager?.ForceEndCurrentPhase();
+            OnDoorBreached?.Invoke();
         }
     }
 

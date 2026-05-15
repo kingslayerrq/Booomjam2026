@@ -1,10 +1,18 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class PlayerResource : MonoBehaviour
 {
+    [Serializable]
+    public class EnergyDrainWindow
+    {
+        public DayPhase phase = DayPhase.Day;
+        [Range(0f, 24f)] public float startHour;
+        [Range(0f, 24f)] public float endHour;
+        [Min(0f)] public float energyDrainPerSecond;
+    }
+
     [Header("Battery")] 
     [SerializeField] private float currentBatteryLevel;
     [SerializeField] private float maxBatteryLevel;
@@ -13,10 +21,20 @@ public class PlayerResource : MonoBehaviour
     [SerializeField] private bool drainEnergy = true;
     [SerializeField] private float currentEnergy;
     [SerializeField] private float maxEnergy;
-    [Tooltip("How long in seconds to fully deplete energy bar")]
-    [SerializeField] private float secondsToDepleteEnergy;
+    [Tooltip("Base energy drained per real-time second during the day.")]
+    [Min(0f)]
+    [SerializeField] private float dayEnergyDrainPerSecond;
+    [Tooltip("Base energy drained per real-time second during the night.")]
+    [Min(0f)]
+    [SerializeField] private float nightEnergyDrainPerSecond;
+    [Tooltip("Optional phase/hour-specific drain overrides. First matching window wins.")]
+    [SerializeField] private List<EnergyDrainWindow> energyDrainWindows = new List<EnergyDrainWindow>();
     private float baseMaxEnergy;
     private float temporaryMaxEnergyPenalty;
+
+    [Header("Lockup")]
+    [SerializeField] private int maxLockupNumber = 3;
+    [SerializeField] private int currentLockupNumber = 3;
     
     [Header("References")]
     [SerializeField] private DayManager dayManager;
@@ -26,9 +44,14 @@ public class PlayerResource : MonoBehaviour
     public float MaxBatteryLevel => maxBatteryLevel;
     public float CurrentEnergy => currentEnergy;
     public float MaxEnergy => maxEnergy;
+    public int CurrentLockupNumber => currentLockupNumber;
+    public int MaxLockupNumber => maxLockupNumber;
+    public bool HasLockupChance => currentLockupNumber > 0;
 
     public event Action OnBatteryLevelChanged;
     public event Action OnEnergyChanged;
+    public event Action OnEnergyDepleted;
+    public event Action OnLockupNumberChanged;
 
     private void Awake()
     {
@@ -64,14 +87,14 @@ public class PlayerResource : MonoBehaviour
         if (!dayManager.IsTimeRunning) return;
         if (drainEnergy)
         {
-            ReduceEnergy((maxEnergy / secondsToDepleteEnergy) * Time.deltaTime);
+            float drainPerSecond = GetEnergyDrainPerSecond();
+            if (drainPerSecond <= 0f)
+                return;
+
+            ReduceEnergy(drainPerSecond * Time.deltaTime);
             
             if (currentEnergy <= 0)
-            {
-                if (dayManager.IsNightPhase)
-                    playerHealth.TakeDamageFromEnergyDepletion();
-                dayManager.ForceEndCurrentPhase();
-            }
+                OnEnergyDepleted?.Invoke();
         }
     }
     
@@ -81,6 +104,7 @@ public class PlayerResource : MonoBehaviour
     {
         ResetBattery();
         ResetEnergy();
+        ResetLockupNumber();
     }
 
     private void ResetEnergy()
@@ -93,12 +117,80 @@ public class PlayerResource : MonoBehaviour
     {
         ClearTemporaryMaxEnergyPenalty();
         ResetEnergy();
+        ResetLockupNumber();
     }
 
     private void ResetBattery()
     {
         currentBatteryLevel = maxBatteryLevel;
         OnBatteryLevelChanged?.Invoke();
+    }
+
+    private float GetEnergyDrainPerSecond()
+    {
+        if (dayManager == null)
+            return 0f;
+
+        if (TryGetEnergyDrainWindowRate(dayManager.CurrentPhase, dayManager.CurrentHour, out float windowRate))
+            return windowRate;
+
+        return dayManager.CurrentPhase == DayPhase.Night
+            ? nightEnergyDrainPerSecond
+            : dayEnergyDrainPerSecond;
+    }
+
+    private bool TryGetEnergyDrainWindowRate(DayPhase phase, float hour, out float rate)
+    {
+        rate = 0f;
+
+        if (energyDrainWindows == null)
+            return false;
+
+        for (int i = 0; i < energyDrainWindows.Count; i++)
+        {
+            EnergyDrainWindow window = energyDrainWindows[i];
+            if (window == null || window.phase != phase || !IsHourInsideWindow(hour, window.startHour, window.endHour))
+                continue;
+
+            rate = Mathf.Max(0f, window.energyDrainPerSecond);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsHourInsideWindow(float hour, float startHour, float endHour)
+    {
+        if (Mathf.Approximately(startHour, endHour))
+            return false;
+
+        if (startHour < endHour)
+            return hour >= startHour && hour < endHour;
+
+        return hour >= startHour || hour < endHour;
+    }
+
+    public bool TryUseLockupChance()
+    {
+        if (currentLockupNumber <= 0)
+            return false;
+
+        currentLockupNumber--;
+        OnLockupNumberChanged?.Invoke();
+        return true;
+    }
+
+    public void ResetLockupNumber()
+    {
+        currentLockupNumber = Mathf.Max(0, maxLockupNumber);
+        OnLockupNumberChanged?.Invoke();
+    }
+
+    public void SetMaxLockupNumber(int value)
+    {
+        maxLockupNumber = Mathf.Max(0, value);
+        currentLockupNumber = Mathf.Min(currentLockupNumber, maxLockupNumber);
+        OnLockupNumberChanged?.Invoke();
     }
     
    

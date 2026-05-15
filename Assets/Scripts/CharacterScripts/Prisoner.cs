@@ -66,6 +66,8 @@ public class Prisoner
     {
         isLockedUp = true;
         Debug.Log($"{PrisonerID} is locked");
+        
+        
     }
     
     public void ReleaseLockUp()

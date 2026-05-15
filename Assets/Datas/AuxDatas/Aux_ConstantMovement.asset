@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AuxiliaryEvidenceDefinition
   evidenceType: 3
   displayName: ConstantMovement
-  alternateRooms: []
   constantMovementRetargetSeconds: 0.35
+  constantMovementSpeedMultiplier: 5
   abnormalBatteryDrainPerSecond: 0.05
-  crowdedRoomPrisonerThreshold: 2
   featureMismatchColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   objectMoveLocalOffset: {x: 0.35, y: 0, z: 0.2}

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,6 +9,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private PrisonerManager prisonerManager;
     [SerializeField] private PlayerResource playerResource;
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private PlayerCamera playerCamera;
+    [SerializeField] private SurveillanceUI surveillanceUI;
+    [SerializeField] private NightAttackManager nightAttackManager;
     
     [Header("UI Panels")]
     [SerializeField] private GameObject mainMenuPanel;
@@ -32,31 +36,32 @@ public class GameManager : MonoBehaviour
     private void OnEnable()
     {
         if (dayManager != null)
-        {
             dayManager.OnDayEnded += HandleDayEnd;
-        }
-
         if (playerHealth != null)
-        {
             playerHealth.OnPlayerHealthDepleted += HandleGameOver;
-        }
-        
+        if (playerResource != null)
+            playerResource.OnEnergyDepleted += HandleEnergyDepleted;
+        if (nightAttackManager != null)
+            nightAttackManager.OnDoorBreached += HandleDoorBreached;
     }
-    
 
     private void OnDisable()
     {
         if (dayManager != null)
-        {
             dayManager.OnDayEnded -= HandleDayEnd;
-        }
-        
         if (playerHealth != null)
-        {
             playerHealth.OnPlayerHealthDepleted -= HandleGameOver;
-        }
+        if (playerResource != null)
+            playerResource.OnEnergyDepleted -= HandleEnergyDepleted;
+        if (nightAttackManager != null)
+            nightAttackManager.OnDoorBreached -= HandleDoorBreached;
     }
     
+    private void Awake()
+    {
+        HideGameStatePanels();
+    }
+
     private void LateUpdate()
     {
         ApplyCursorState();
@@ -107,6 +112,7 @@ public class GameManager : MonoBehaviour
         HideGameStatePanels();
         dayManager.StartDay(dayManager.CurrentDay + 1);
         SaveCurrentGame();
+        playerCamera?.TriggerWakeUp();
     }
 
     /// <summary>
@@ -121,6 +127,33 @@ public class GameManager : MonoBehaviour
     {
         HideGameStatePanels();
         dayManager.StartDay(dayManager.CurrentDay, DayPhase.Night);
+        playerCamera?.TriggerWakeUp();
+    }
+
+    private void HandleEnergyDepleted()
+    {
+        bool wasNight = dayManager.IsNightPhase;
+
+        if (wasNight)
+            playerHealth.TakeDamageFromEnergyDepletion();
+
+        if (wasNight)
+            TriggerKnockoutSequence(() => dayManager.ForceEndCurrentPhase());
+        else
+            TriggerKnockoutSequence(() => halfDayCompletePanel?.SetActive(true));
+    }
+
+    private void HandleDoorBreached()
+    {
+        playerHealth?.TakeSabotageDamage(1);
+        TriggerKnockoutSequence(() => dayManager.ForceEndCurrentPhase());
+    }
+
+    private void TriggerKnockoutSequence(Action onKnockoutComplete)
+    {
+        surveillanceUI?.Close();
+        dayManager.StopDay();
+        playerCamera?.TriggerKnockout(onKnockoutComplete);
     }
 
     private void HandleDayEnd()

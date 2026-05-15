@@ -33,14 +33,24 @@ public class SurveillanceCamController : MonoBehaviour
 
     private bool isControlled;
 
+    public SurveillanceCamLightController CamLightController
+    {
+        get
+        {
+            if (surveillanceCamLightController == null)
+            {
+                surveillanceCamLightController = GetComponent<SurveillanceCamLightController>();
+            }
+
+            return surveillanceCamLightController;
+        }
+    }
+
     private void Awake()
     {
         baseLocalRotation = transform.localRotation;
 
-        if (surveillanceCamLightController == null)
-        {
-            surveillanceCamLightController = GetComponent<SurveillanceCamLightController>();
-        }
+        _ = CamLightController;
 
         ResolvePlayerResource();
     }
@@ -58,7 +68,7 @@ public class SurveillanceCamController : MonoBehaviour
         // Toggle lights
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
-            surveillanceCamLightController?.ToggleCamLight();
+            CamLightController?.ToggleCamLight();
         }
 
         HandleCameraInput();
@@ -77,7 +87,7 @@ public class SurveillanceCamController : MonoBehaviour
 
         if (!isControlled)
         {
-            surveillanceCamLightController?.TurnOffCamLight();
+            CamLightController?.TurnOffCamLight();
             return;
         }
 

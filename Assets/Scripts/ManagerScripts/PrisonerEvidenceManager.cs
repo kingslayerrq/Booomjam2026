@@ -38,6 +38,9 @@ public class PrisonerEvidenceManager : MonoBehaviour
     [SerializeField] private float defaultHighRiskObserveSeconds = 3f;
     [SerializeField] private float defaultAbnormalBatteryDrainPerSecond = 0.02f;
 
+    [Header("Lockup Consequences")]
+    [SerializeField] private float batteryReductionPerWrongLockup = 1f;
+
     private readonly Dictionary<HighRiskEvidenceType, HighRiskEvidenceDefinition> highRiskDefinitions =
         new Dictionary<HighRiskEvidenceType, HighRiskEvidenceDefinition>();
     private readonly Dictionary<AuxiliaryEvidenceType, AuxiliaryEvidenceDefinition> auxiliaryDefinitions =
@@ -51,6 +54,7 @@ public class PrisonerEvidenceManager : MonoBehaviour
     private readonly Dictionary<PrisonerActionController, Renderer[]> featureMismatchRenderers =
         new Dictionary<PrisonerActionController, Renderer[]>();
     private readonly HashSet<PrisonerActionController> objectMovedControllers = new HashSet<PrisonerActionController>();
+    private readonly HashSet<Prisoner> wronglyLockedUpPrisoners = new HashSet<Prisoner>();
 
     private MaterialPropertyBlock featureMismatchBlock;
     private DayScheduleConfig currentScheduleConfig;
@@ -122,6 +126,7 @@ public class PrisonerEvidenceManager : MonoBehaviour
         nextConstantMovementRetargetTimes.Clear();
         savedWanderSpeeds.Clear();
         objectMovedControllers.Clear();
+        wronglyLockedUpPrisoners.Clear();
 
         if (prisoners == null)
             return;
@@ -237,6 +242,12 @@ public class PrisonerEvidenceManager : MonoBehaviour
     public void HandlePrisonerLockedUp(PrisonerActionController controller)
     {
         EndAuxiliaryBehavior(controller);
+
+        if (controller?.Prisoner is { IsBad: false } prisoner)
+        {
+            wronglyLockedUpPrisoners.Add(prisoner);
+            Debug.Log($"[PrisonerEvidenceManager] {prisoner.PrisonerID} is WRONGLY LOCKED!");
+        }
     }
 
     public bool TryGetVisibleHighRiskEvidence(
@@ -355,6 +366,7 @@ public class PrisonerEvidenceManager : MonoBehaviour
     {
         ResolveReferences();
         ResetNightModifiers();
+        ResolveWrongLockupConsequences();
 
         if (prisonerManager == null)
             return;
@@ -393,6 +405,18 @@ public class PrisonerEvidenceManager : MonoBehaviour
         nightFeedInterferenceIntensity = 0f;
         NightAudioPromptMultiplier = 1f;
         playerResource?.ClearTemporaryMaxEnergyPenalty();
+    }
+
+    private void ResolveWrongLockupConsequences()
+    {
+        if (playerResource == null || wronglyLockedUpPrisoners.Count == 0)
+            return;
+
+        float totalReduction = batteryReductionPerWrongLockup * wronglyLockedUpPrisoners.Count;
+        playerResource.ReduceBatteryLevel(totalReduction);
+        Debug.Log($"[Evidence] Wrong lockup penalty: {wronglyLockedUpPrisoners.Count} good prisoner(s), " +
+                  $"-{totalReduction} battery.");
+        wronglyLockedUpPrisoners.Clear();
     }
 
     private bool CanRunAuxiliary(PrisonerActionController controller, out ScheduleBlock block)
