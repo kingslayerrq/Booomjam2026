@@ -28,8 +28,8 @@ MonoBehaviour:
     realDurationInSeconds: 60
   nightSegments:
   - gameStartHour: 16
-    gameEndHour: 24
-    realDurationInSeconds: 60
+    gameEndHour: 8
+    realDurationInSeconds: 180
   segments:
   - gameStartHour: 0
     gameEndHour: 6

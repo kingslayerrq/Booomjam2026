@@ -28,7 +28,5 @@ MonoBehaviour:
   - roomName: Guard_Break_Room
   - roomName: Prison_Workshop
   - roomName: Cafe
-  - roomName: Prison_Administration_Office
-  - roomName: Interrogation_Room
   - roomName: Electrical_Room
   fallbackToAssignedCellIfRoomMissing: 0
