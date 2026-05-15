@@ -7,6 +7,13 @@ public class DayScheduleConfig : ScriptableObject
 {
     public List<ScheduleBlockConfig> scheduleBlocks;
 
+    [Header("Evidence Settings")]
+    public List<HighRiskEvidenceDefinition> highRiskEvidencePool;
+    public List<AuxiliaryEvidenceDefinition> auxiliaryEvidencePool;
+    [Range(0f, 1f)] public float goodAuxiliaryChance = 0.2f;
+    [Min(0)] public int badAuxiliaryMinPerDay = 1;
+    [Min(0)] public int badAuxiliaryMaxPerDay = 4;
+
     private void OnValidate()
     {
         ValidateSchedule();

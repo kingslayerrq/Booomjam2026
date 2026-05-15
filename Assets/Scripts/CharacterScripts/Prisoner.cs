@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,11 +10,16 @@ public class Prisoner
     [Header("Runtime Info")] 
     [SerializeField] private bool isBad;
     [SerializeField] private bool isLockedUp;
+    [SerializeField] private HighRiskEvidenceType highRiskEvidenceType;
     [SerializeField] private List<ScheduleBlock> dailySchedule;
+    [NonSerialized] private HighRiskEvidenceDefinition highRiskEvidenceDefinition;
     
     public PrisonerData PrisonerData => prisonerData;
     public bool IsBad => isBad;
     public bool IsLockedUp => isLockedUp;
+    public bool HasHighRiskEvidence => highRiskEvidenceType != HighRiskEvidenceType.None;
+    public HighRiskEvidenceType HighRiskEvidenceType => highRiskEvidenceType;
+    public HighRiskEvidenceDefinition HighRiskEvidenceDefinition => highRiskEvidenceDefinition;
     public List<ScheduleBlock> DailySchedule => dailySchedule;
 
     public Prisoner(PrisonerData data, bool isBad = false)
@@ -21,6 +27,7 @@ public class Prisoner
         this.prisonerData = data;
         this.isBad = isBad;
         this.isLockedUp = false;
+        this.highRiskEvidenceType = HighRiskEvidenceType.None;
         this.dailySchedule = new List<ScheduleBlock>();
     }
     
@@ -32,10 +39,35 @@ public class Prisoner
         isBad = bad;
     }
 
+    public void SetHighRiskEvidence(HighRiskEvidenceDefinition definition)
+    {
+        highRiskEvidenceDefinition = definition;
+        highRiskEvidenceType = definition != null ? definition.EvidenceType : HighRiskEvidenceType.None;
+    }
+
+    public void SetHighRiskEvidence(HighRiskEvidenceType evidenceType)
+    {
+        highRiskEvidenceDefinition = null;
+        highRiskEvidenceType = evidenceType;
+    }
+
+    public void ClearEvidence()
+    {
+        highRiskEvidenceDefinition = null;
+        highRiskEvidenceType = HighRiskEvidenceType.None;
+
+        foreach (ScheduleBlock block in dailySchedule)
+        {
+            block?.ClearAuxiliaryEvidence();
+        }
+    }
+
     public void LockUp()
     {
         isLockedUp = true;
         Debug.Log($"{PrisonerID} is locked");
+        
+        
     }
     
     public void ReleaseLockUp()

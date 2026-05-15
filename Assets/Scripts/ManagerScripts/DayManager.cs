@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class DayManager : MonoBehaviour
 {
@@ -8,107 +7,145 @@ public class DayManager : MonoBehaviour
     [SerializeField] private int currentDay;
     [SerializeField] private int totalDays;
     [SerializeField] private DayTimeConfig timeConfig;
-    [SerializeField] private float noonHour;
+    [SerializeField] private DayPhase currentPhase = DayPhase.Day;
     
-    private float elapsedTimeInSeconds;
-    private bool isDayRunning;
-    private float _totalRealDuration;
-    private float _realSecondsToNoon;
+    private float elapsedPhaseTimeInSeconds;
+    private bool isTimeRunning;
+    private float currentPhaseDurationInSeconds;
     
     public int CurrentDay => currentDay;
     public int TotalDays => totalDays;
-    public float StartHour => timeConfig.segments[0].gameStartHour;
-    public float EndHour => timeConfig.segments[timeConfig.segments.Count - 1].gameEndHour;
-    public bool IsMorning => isDayRunning && elapsedTimeInSeconds < _realSecondsToNoon;
-    public float DayDurationInSeconds => _totalRealDuration;
-    public float RemainingSeconds => Mathf.Max(0f, _totalRealDuration - elapsedTimeInSeconds);
-    public float NormalizedTime => _totalRealDuration <= 0f ? 1f : elapsedTimeInSeconds / _totalRealDuration;
-    public float CurrentHour => timeConfig.GameHourAtRealSeconds(elapsedTimeInSeconds);
-    public bool IsDayRunning => isDayRunning;
+    public DayPhase CurrentPhase => currentPhase;
+    public float StartHour => timeConfig != null ? timeConfig.PhaseStartHour(currentPhase) : 0f;
+    public float EndHour => timeConfig != null ? timeConfig.PhaseEndHour(currentPhase) : 0f;
+    public bool IsDayPhase => isTimeRunning && currentPhase == DayPhase.Day;
+    public bool IsNightPhase => isTimeRunning && currentPhase == DayPhase.Night;
+    public float DayDurationInSeconds => timeConfig != null ? timeConfig.TotalRealDuration(DayPhase.Day) : 0f;
+    public float PhaseDurationInSeconds => currentPhaseDurationInSeconds;
+    public float RemainingSeconds => Mathf.Max(0f, currentPhaseDurationInSeconds - elapsedPhaseTimeInSeconds);
+    public float NormalizedTime => currentPhaseDurationInSeconds <= 0f ? 1f : elapsedPhaseTimeInSeconds / currentPhaseDurationInSeconds;
+    public float CurrentHour => timeConfig != null ? timeConfig.GameHourAtRealSeconds(currentPhase, elapsedPhaseTimeInSeconds) : 0f;
+    public bool IsDayRunning => IsDayPhase;
+    public bool IsTimeRunning => isTimeRunning;
 
     public event Action OnDayInitialized;       // Setup, UIs
-    public event Action OnMorningStarted;       // Gameplay logic events
-    public event Action OnAfternoonStarted;
-    public event Action OnHalfDayPassed;
+    public event Action OnDayStarted;
+    public event Action OnNightStarted;
+    public event Action OnNightEnded;
     public event Action OnDayEnded;
+    public event Action OnPhaseChanged;
     public event Action OnTimeChanged;
     
 
     private void Update()
     {
-        if (!isDayRunning) return;
+        if (!isTimeRunning) return;
         
-        bool wasMorning = elapsedTimeInSeconds < _realSecondsToNoon;
-        
-        elapsedTimeInSeconds += Time.deltaTime;
+        elapsedPhaseTimeInSeconds += Time.deltaTime;
         OnTimeChanged?.Invoke();
 
-        if (wasMorning && elapsedTimeInSeconds >= _realSecondsToNoon)
+        if (elapsedPhaseTimeInSeconds >= currentPhaseDurationInSeconds)
         {
-            // TODO: half day events?
-            EndHalfDay();
-        }
-
-        if (elapsedTimeInSeconds >= DayDurationInSeconds)
-        {
-            EndDay();
+            CompleteCurrentPhase();
         }
     }
 
-    public void StartDay(int day, bool fromMorning = true)
+    public void StartDay(int day)
+    {
+        StartDay(day, DayPhase.Day);
+    }
+
+    public void StartDay(int day, DayPhase phase)
     {
         if (day > totalDays) return;
-        noonHour = timeConfig.dayFormat == DayFormat.TwentyFourHour ? 12 : 6;
-        _totalRealDuration = timeConfig.TotalRealDuration();
-        _realSecondsToNoon = timeConfig.RealSecondsAtGameHour(noonHour);
         
         currentDay = day;
-        isDayRunning = true;
-        elapsedTimeInSeconds = fromMorning ? 0 : _realSecondsToNoon;
-
         OnDayInitialized?.Invoke();
+        StartPhase(phase);
 
-        if (fromMorning)
+        Debug.Log($"Day {currentDay} started in {currentPhase} phase.");
+    }
+
+    public void StartDay(int day, bool fromMorning)
+    {
+        StartDay(day, fromMorning ? DayPhase.Day : DayPhase.Night);
+    }
+
+    public void JumpToNight(string reason = "")
+    {
+        if (!isTimeRunning || currentPhase == DayPhase.Night)
+            return;
+
+        StartPhase(DayPhase.Night);
+
+        if (string.IsNullOrWhiteSpace(reason))
         {
-            OnMorningStarted?.Invoke();
+            Debug.Log($"Day {currentDay} jumped to Night.");
         }
         else
         {
-            OnAfternoonStarted?.Invoke();
+            Debug.Log($"Day {currentDay} jumped to Night: {reason}");
         }
-
-        Debug.Log(fromMorning ? $"Day {currentDay} started." : $"Day {currentDay} continued from noon.");
     }
     
     /// <summary>
-    /// Force the current half day to be passed (eg: energy reaches 0)
+    /// Force the current active phase to end.
     /// </summary>
+    public void ForceEndCurrentPhase()
+    {
+        CompleteCurrentPhase();
+    }
+
     public void ForceEndHalfDay()
     {
-        bool wasMorning = RemainingSeconds > _realSecondsToNoon;
-        
-        if (wasMorning)
+        ForceEndCurrentPhase();
+    }
+
+    private void StartPhase(DayPhase phase)
+    {
+        currentPhase = phase;
+        elapsedPhaseTimeInSeconds = 0f;
+        currentPhaseDurationInSeconds = timeConfig != null ? timeConfig.TotalRealDuration(currentPhase) : 0f;
+        isTimeRunning = true;
+
+        OnPhaseChanged?.Invoke();
+        OnTimeChanged?.Invoke();
+
+        if (currentPhase == DayPhase.Day)
         {
-            EndHalfDay();
+            OnDayStarted?.Invoke();
         }
         else
         {
-            EndDay();
+            OnNightStarted?.Invoke();
         }
     }
-    
-    private void EndHalfDay()
+
+    private void CompleteCurrentPhase()
     {
-        isDayRunning = false;
-        OnHalfDayPassed?.Invoke();
-        Debug.Log($"Day {currentDay} passed noon.");
+        if (currentPhase == DayPhase.Day)
+        {
+            StartPhase(DayPhase.Night);
+            return;
+        }
+
+        EndNightAndDay();
     }
 
-    private void EndDay()
+    private void EndNightAndDay()
     {
-        isDayRunning = false;
+        isTimeRunning = false;
+        OnNightEnded?.Invoke();
         OnDayEnded?.Invoke();
-        
+
+        Debug.Log($"Day {currentDay} night ended.");
+    }
+
+    public void EndDayImmediately()
+    {
+        isTimeRunning = false;
+        OnDayEnded?.Invoke();
+
         Debug.Log($"Day {currentDay} ended.");
     }
 
@@ -117,7 +154,7 @@ public class DayManager : MonoBehaviour
     /// </summary>
     public void StopDay()
     {
-        isDayRunning = false;
+        isTimeRunning = false;
         
         Debug.Log($"Day {currentDay} stopped.");
     }

@@ -100,6 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 483599290660319463}
   - component: {fileID: 3123702671305302051}
+  - component: {fileID: 5383567924098785548}
   m_Layer: 3
   m_Name: VisualsContainer
   m_TagString: Untagged
@@ -136,6 +137,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterBillboardBehavior
   currentCamera: {fileID: 0}
+  followCameraRotation: 1
+  col: {fileID: 0}
+--- !u!114 &5383567924098785548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 163989124461157579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aef8ec63776731a4f8b00b3068ef0903, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
+  torso: {fileID: 1874921426968950233}
+  head: {fileID: 3468106384034487203}
+  armL: {fileID: 2503824777354719856}
+  armR: {fileID: 7436043795090353658}
+  legL: {fileID: 8277715881574791063}
+  legR: {fileID: 4183734189948828696}
 --- !u!1 &2956655386787625452
 GameObject:
   m_ObjectHideFlags: 0
@@ -239,6 +260,7 @@ GameObject:
   - component: {fileID: 3394017557747993572}
   - component: {fileID: 2315953843644465176}
   - component: {fileID: -1750371048493945489}
+  - component: {fileID: 8025218949628045830}
   m_Layer: 3
   m_Name: Character_Root
   m_TagString: Untagged
@@ -324,6 +346,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b5d1c1d56691ff4ab11f45b4a538d91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PrisonerActionController
+  visualRoot: {fileID: 0}
+  useMovementObstacleProbe: 0
+  movementObstacleMask:
+    serializedVersion: 2
+    m_Bits: 59
+  obstacleProbeSkin: 0.08
+  wanderTargetAttempts: 12
+  blockedRetryDelay: 0.15
+  collisionRedirectCooldown: 0.25
+  stuckDistance: 0.01
+  stuckSeconds: 0.35
 --- !u!114 &-1750371048493945489
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -338,6 +371,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HighlightComponent
   highlightMaterial: {fileID: 2100000, guid: c4dac17800ce4b1287e38f650edec077, type: 2}
   renderers: []
+--- !u!114 &8025218949628045830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3940613829420828962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 217dc4dfd9d729d498bcdc8d3fc67cf2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NightAttackerController
 --- !u!1 &4404685745156603474
 GameObject:
   m_ObjectHideFlags: 0

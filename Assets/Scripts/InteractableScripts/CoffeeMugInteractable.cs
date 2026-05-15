@@ -22,14 +22,14 @@ public class CoffeeMugInteractable : MonoBehaviour, IInteractable
 
     private void OnEnable()
     {
-        dayManager.OnMorningStarted += ResetCoffeeMug;
-        dayManager.OnHalfDayPassed += ResetCoffeeMug;
+        dayManager.OnDayStarted += ResetCoffeeMug;
+        dayManager.OnNightStarted += ResetCoffeeMug;
     }
 
     private void OnDisable()
     {
-        dayManager.OnMorningStarted -= ResetCoffeeMug;
-        dayManager.OnHalfDayPassed -= ResetCoffeeMug;
+        dayManager.OnDayStarted -= ResetCoffeeMug;
+        dayManager.OnNightStarted -= ResetCoffeeMug;
     }
     
 

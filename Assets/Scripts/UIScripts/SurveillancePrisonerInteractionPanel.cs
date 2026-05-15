@@ -7,14 +7,14 @@ using UnityEngine.UI;
 
 public class SurveillancePrisonerInteractionPanel : MonoBehaviour
 {
-    private const float PanelWidth = 190f;
-    private const float PanelHeight = 112f;
+    // private const float PanelWidth = 220f;
+    // private const float PanelHeight = 80f;
     private const float ClickOffset = 12f;
 
     [SerializeField] private RectTransform panelRect;
     [SerializeField] private TMP_Text prisonerLabel;
-    [SerializeField] private Button arrestButton;
     [SerializeField] private Button lockUpButton;
+    [SerializeField] private PlayerResource playerResource;
     [SerializeField] private RectTransform clampBounds;
 
     private PrisonerActionController selectedPrisoner;
@@ -38,6 +38,12 @@ public class SurveillancePrisonerInteractionPanel : MonoBehaviour
         Hide();
     }
 
+    private void OnEnable()
+    {
+        SubscribeToPlayerResource();
+        RefreshLockUpButtonState();
+    }
+
     private void Update()
     {
         if (!IsOpen || Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
@@ -54,6 +60,11 @@ public class SurveillancePrisonerInteractionPanel : MonoBehaviour
 
     private void OnDisable()
     {
+        if (playerResource != null)
+        {
+            playerResource.OnLockupNumberChanged -= RefreshLockUpButtonState;
+        }
+
         if (IsAnyOpen && panelRect != null && !panelRect.gameObject.activeInHierarchy)
         {
             IsAnyOpen = false;
@@ -98,13 +109,21 @@ public class SurveillancePrisonerInteractionPanel : MonoBehaviour
     private void RefreshLabel()
     {
         Prisoner prisoner = selectedPrisoner.Prisoner;
-        string displayName = string.IsNullOrWhiteSpace(prisoner.PrisonerName)
-            ? $"Prisoner {prisoner.PrisonerID}"
-            : prisoner.PrisonerName;
-        string status = prisoner.IsLockedUp ? "Locked" : "Available";
 
-        prisonerLabel.text = $"{displayName}\n{status}";
-        lockUpButton.interactable = !prisoner.IsLockedUp;
+        prisonerLabel.text = $"ID {prisoner.PrisonerID}";
+        RefreshLockUpButtonState();
+    }
+
+    private void RefreshLockUpButtonState()
+    {
+        if (lockUpButton == null)
+            return;
+
+        bool prisonerCanBeLocked = selectedPrisoner != null
+                                   && selectedPrisoner.Prisoner != null
+                                   && !selectedPrisoner.Prisoner.IsLockedUp;
+        bool hasLockupChance = playerResource != null && playerResource.HasLockupChance;
+        lockUpButton.interactable = prisonerCanBeLocked && hasLockupChance;
     }
 
     private void PositionNear(Vector2 screenPosition)
@@ -182,12 +201,6 @@ public class SurveillancePrisonerInteractionPanel : MonoBehaviour
 
     private void WireButtons()
     {
-        if (arrestButton != null)
-        {
-            arrestButton.onClick.RemoveListener(ArrestSelectedPrisoner);
-            arrestButton.onClick.AddListener(ArrestSelectedPrisoner);
-        }
-
         if (lockUpButton != null)
         {
             lockUpButton.onClick.RemoveListener(LockUpSelectedPrisoner);
@@ -205,26 +218,46 @@ public class SurveillancePrisonerInteractionPanel : MonoBehaviour
             panelRect = (RectTransform)transform;
         }
 
+        ResolvePlayerResource();
+        SubscribeToPlayerResource();
+
+        // panelRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, PanelWidth);
+        // panelRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, PanelHeight);
+
         WireButtons();
         isInitialized = true;
     }
 
-    private void ArrestSelectedPrisoner()
+    private void ResolvePlayerResource()
     {
-        if (selectedPrisoner != null && selectedPrisoner.Prisoner != null)
+        if (playerResource == null)
         {
-            Debug.Log($"[Surveillance] Arrest placeholder selected for prisoner {selectedPrisoner.Prisoner.PrisonerID}.");
+            playerResource = FindFirstObjectByType<PlayerResource>();
         }
+    }
 
-        Hide();
+    private void SubscribeToPlayerResource()
+    {
+        ResolvePlayerResource();
+
+        if (playerResource != null)
+        {
+            playerResource.OnLockupNumberChanged -= RefreshLockUpButtonState;
+            playerResource.OnLockupNumberChanged += RefreshLockUpButtonState;
+        }
     }
 
     private void LockUpSelectedPrisoner()
     {
-        if (selectedPrisoner != null && selectedPrisoner.Prisoner != null)
+        if (selectedPrisoner != null
+            && selectedPrisoner.Prisoner != null
+            && !selectedPrisoner.Prisoner.IsLockedUp
+            && playerResource != null
+            && playerResource.TryUseLockupChance())
         {
-            selectedPrisoner.Prisoner.LockUp();
-            Debug.Log($"[Surveillance] Lock Them Up selected for prisoner {selectedPrisoner.Prisoner.PrisonerID}.");
+            selectedPrisoner.LockUpPrisoner();
+            PrisonerEvidenceManager.Instance.HandlePrisonerLockedUp(selectedPrisoner);
+            // Debug.Log($"[Surveillance] Lock Them Up selected for prisoner {selectedPrisoner.Prisoner.PrisonerID}.");
         }
 
         Hide();

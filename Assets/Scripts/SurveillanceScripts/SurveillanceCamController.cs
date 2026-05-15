@@ -3,6 +3,13 @@ using UnityEngine.InputSystem;
 
 public class SurveillanceCamController : MonoBehaviour
 {
+    [Header("Battery consumption")]
+    [SerializeField] private PlayerResource playerResource;
+    [Tooltip("Battery drained per real-time second while this camera is controlled in expanded surveillance view.")]
+    [SerializeField] private float camBatteryConsumption = 0.01f;
+    [Tooltip("Room this camera belongs to. Used to detect AbnormalBatteryDrain prisoners.")]
+    [SerializeField] private GameObject room;
+
     [Header("Camera Rotation Speed")]
     [SerializeField] private float yawSpeed = 25f;
     [SerializeField] private float pitchSpeed = 18f;
@@ -11,13 +18,13 @@ public class SurveillanceCamController : MonoBehaviour
     [SerializeField] private float yawLimit = 45f;
     [SerializeField] private float lookUpLimit = 25f;
     [SerializeField] private float lookDownLimit = 30f;
-    
+
     [Header("Camera Light")]
     [SerializeField] private SurveillanceCamLightController surveillanceCamLightController;
-    
+
     [Header("Options")]
     [SerializeField] private bool resetWhenControlStarts = false;
-    
+
 
     private Quaternion baseLocalRotation;
 
@@ -26,14 +33,26 @@ public class SurveillanceCamController : MonoBehaviour
 
     private bool isControlled;
 
+    public SurveillanceCamLightController CamLightController
+    {
+        get
+        {
+            if (surveillanceCamLightController == null)
+            {
+                surveillanceCamLightController = GetComponent<SurveillanceCamLightController>();
+            }
+
+            return surveillanceCamLightController;
+        }
+    }
+
     private void Awake()
     {
         baseLocalRotation = transform.localRotation;
 
-        if (surveillanceCamLightController == null)
-        {
-            surveillanceCamLightController = GetComponent<SurveillanceCamLightController>();
-        }
+        _ = CamLightController;
+
+        ResolvePlayerResource();
     }
 
     private void Update()
@@ -42,24 +61,33 @@ public class SurveillanceCamController : MonoBehaviour
             return;
         if (GameManager.IsMenuOpen || GameManager.BlockCamControl || SurveillancePrisonerInteractionPanel.IsAnyOpen)
             return;
-        
+
+        if (!ConsumeControlBattery())
+            return;
+
         // Toggle lights
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
-            surveillanceCamLightController?.ToggleCamLight();
+            CamLightController?.ToggleCamLight();
         }
 
         HandleCameraInput();
         ApplyRotation();
+
     }
 
     public void SetControlled(bool controlled)
     {
+        if (controlled && !HasBatteryForControl())
+        {
+            controlled = false;
+        }
+
         isControlled = controlled;
 
         if (!isControlled)
         {
-            surveillanceCamLightController?.TurnOffCamLight();
+            CamLightController?.TurnOffCamLight();
             return;
         }
 
@@ -104,5 +132,37 @@ public class SurveillanceCamController : MonoBehaviour
     {
         Quaternion offsetRotation = Quaternion.Euler(pitchOffset, yawOffset, 0f);
         transform.localRotation = baseLocalRotation * offsetRotation;
+    }
+
+    private bool ConsumeControlBattery()
+    {
+        if (!ResolvePlayerResource())
+            return true;
+
+        float drain = camBatteryConsumption;
+        drain += PrisonerEvidenceManager.Instance?.GetAuxBatteryDrainRate(room) ?? 0f;
+
+        if (drain > 0f)
+            playerResource.ReduceBatteryLevel(drain * Time.deltaTime);
+
+        if (playerResource.CurrentBatteryLevel > 0f)
+            return true;
+
+        SetControlled(false);
+        return false;
+    }
+
+    private bool HasBatteryForControl()
+    {
+        return !ResolvePlayerResource() || playerResource.CurrentBatteryLevel > 0f;
+    }
+
+    private bool ResolvePlayerResource()
+    {
+        if (playerResource != null)
+            return true;
+
+        playerResource = FindFirstObjectByType<PlayerResource>();
+        return playerResource != null;
     }
 }

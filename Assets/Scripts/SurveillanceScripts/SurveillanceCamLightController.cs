@@ -6,7 +6,9 @@ public class SurveillanceCamLightController : MonoBehaviour
     [SerializeField] private Light camLight;
     [SerializeField] private PlayerResource playerResource;
     [SerializeField] private float batteryDrainsPerSecond;
-    
+
+    public event Action<bool> OnLightStateChanged;
+
     public bool IsOn { get; private set; }
 
     private void Awake()
@@ -32,7 +34,6 @@ public class SurveillanceCamLightController : MonoBehaviour
         if (IsOn)
         {
             SetLight(false);
-            IsOn = false;
         }
         else
         {
@@ -48,10 +49,17 @@ public class SurveillanceCamLightController : MonoBehaviour
 
     private void SetLight(bool isOn)
     {
+        bool changed = IsOn != isOn;
         IsOn = isOn;
+
         if (camLight != null)
         {
             camLight.enabled = isOn;
+        }
+
+        if (changed)
+        {
+            OnLightStateChanged?.Invoke(IsOn);
         }
     }
 }

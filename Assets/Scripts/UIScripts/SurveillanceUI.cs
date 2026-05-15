@@ -27,16 +27,22 @@ public class SurveillanceUI : MonoBehaviour
     [Header("Grid View Panel")]
     [SerializeField] private GameObject surveillancePanel;
     [SerializeField] private SurveillanceFeedGridView[] feedGridViews;
+    [SerializeField] private ToggleGroup feedToggleGroup;
     
     [Header("Expanded View Panel")]
     [SerializeField] private GameObject expandedPanel;
     [SerializeField] private RawImage expandedImage;
-    [SerializeField] private TMP_Text expandedText;
+    //[SerializeField] private TMP_Text expandedText;
     
     [Header("Visuals")]
     [SerializeField] private Material fisheyeMaterial;
 
+    [Header("Evidence")]
+    [SerializeField] private PrisonerEvidenceManager evidenceManager;
+    [SerializeField] private SurveillanceEvidenceOverlay evidenceOverlay;
+
     [Header("Prisoner Interaction")]
+    [SerializeField] private DayManager dayManager;
     [SerializeField] private SurveillancePrisonerInteractionPanel prisonerInteractionPanel;
     [SerializeField] private LayerMask prisonerInteractionLayerMask = Physics.DefaultRaycastLayers;
     [SerializeField] private LayerMask prisonerOcclusionLayerMask;
@@ -47,6 +53,9 @@ public class SurveillanceUI : MonoBehaviour
     private readonly List<RaycastResult> uiRaycastResults = new List<RaycastResult>(16);
     private PrisonerActionController currentPrisonerTarget;
     private HighlightComponent currentPrisonerHighlight;
+    private PrisonerActionController observedHighRiskPrisoner;
+    private HighRiskEvidenceType observedHighRiskType;
+    private float highRiskObserveTimer;
 
     public static bool IsFeedGridViewPanelActive {get; private set;}
     public SurveillanceFeed ActiveFeed { get; private set; }
@@ -56,6 +65,7 @@ public class SurveillanceUI : MonoBehaviour
     
     private void Start()
     {
+        EnsureEvidenceSetup();
         EnsurePrisonerInteractionSetup();
         Close();
         SetupFeedsGrid();
@@ -84,10 +94,12 @@ public class SurveillanceUI : MonoBehaviour
         if (expandedPanel != null && expandedPanel.activeInHierarchy)
         {
             UpdateCurrentPrisonerTarget();
+            UpdateEvidenceEffects();
         }
         else
         {
             ClearCurrentPrisonerTarget();
+            ClearEvidenceObservation();
         }
     }
     
@@ -123,16 +135,103 @@ public class SurveillanceUI : MonoBehaviour
         }
     }
 
+    private void EnsureEvidenceSetup()
+    {
+        if (evidenceManager == null)
+        {
+            evidenceManager = PrisonerEvidenceManager.Instance;
+        }
+
+        if (evidenceOverlay == null)
+        {
+            evidenceOverlay = GetComponent<SurveillanceEvidenceOverlay>();
+            if (evidenceOverlay == null)
+            {
+                evidenceOverlay = gameObject.AddComponent<SurveillanceEvidenceOverlay>();
+            }
+        }
+
+        if (expandedImage != null && evidenceOverlay != null)
+        {
+            evidenceOverlay.EnsureSetup(expandedImage.rectTransform);
+        }
+    }
+
     private void SetupFeedsGrid()
     {
+        if (surveillanceManager == null)
+        {
+            Debug.LogError("[SurveillanceUI] SurveillanceManager is not assigned.", this);
+            return;
+        }
+
+        if (feedGridViews == null || feedGridViews.Length == 0)
+        {
+            Debug.LogWarning("[SurveillanceUI] No feed grid views are assigned.", this);
+            return;
+        }
+
+        EnsureFeedToggleGroup();
+
         SurveillanceFeed[] feeds = surveillanceManager.Feeds;
+
         for (int i = 0; i < feedGridViews.Length; i++)
         {
+            if (feedGridViews[i] == null)
+            {
+                Debug.LogWarning($"[SurveillanceUI] Feed grid view slot {i} is not assigned.", this);
+                continue;
+            }
+
             bool hasFeed = i < feeds.Length;
             feedGridViews[i].gameObject.SetActive(hasFeed);
             if (hasFeed)
             {
-                feedGridViews[i].Setup(feeds[i], this, fisheyeMaterial);
+                feedGridViews[i].Setup(feeds[i], this, feedToggleGroup);
+            }
+        }
+
+        ResetFeedToggles();
+    }
+
+    private void EnsureFeedToggleGroup()
+    {
+        if (feedToggleGroup != null)
+            return;
+
+        Transform searchRoot = surveillancePanel != null ? surveillancePanel.transform : transform;
+        feedToggleGroup = searchRoot.GetComponentInChildren<ToggleGroup>(true);
+
+        if (feedToggleGroup == null && surveillancePanel != null)
+        {
+            feedToggleGroup = surveillancePanel.AddComponent<ToggleGroup>();
+        }
+
+        if (feedToggleGroup == null)
+        {
+            Debug.LogWarning("[SurveillanceUI] Feed ToggleGroup is not assigned and could not be created.", this);
+            return;
+        }
+
+        feedToggleGroup.allowSwitchOff = true;
+    }
+
+    private void ResetFeedToggles()
+    {
+        if (feedToggleGroup != null)
+        {
+            feedToggleGroup.allowSwitchOff = true;
+            feedToggleGroup.SetAllTogglesOff(false);
+        }
+
+        if (feedGridViews == null)
+            return;
+
+        for (int i = 0; i < feedGridViews.Length; i++)
+        {
+            if (feedGridViews[i] != null)
+            {
+                feedGridViews[i].SetToggleOffWithoutNotify();
             }
         }
     }
@@ -140,6 +239,9 @@ public class SurveillanceUI : MonoBehaviour
     public void TryOpenExpandedFeed(SurveillanceFeed feed)
     {
         if (!IsOpen || isTransitioning || feed == null) return;
+
+        // Optimization: Don't restart transition if clicking the already active feed
+        if (ActiveFeed == feed && expandedPanel.activeInHierarchy) return;
 
         if (transitionRoutine != null)
         {
@@ -201,17 +303,16 @@ public class SurveillanceUI : MonoBehaviour
     
     private void ApplyActiveFeed(SurveillanceFeed feed)
     {
+        ClearEvidenceObservation();
         ActiveFeed = feed;
         ActiveCamera = feed.camera;
-        ActiveRoom = RoomManager.Instance != null
-            ? RoomManager.Instance.GetRoomByName(feed.displayName)
-            : null;
+        ActiveRoom = ResolveActiveRoom(feed);
 
         expandedPanel.SetActive(true);
 
         expandedImage.texture = feed.renderTexture;
         expandedImage.material = fisheyeMaterial;
-        expandedText.text = feed.displayName;
+        // expandedText.text = feed.displayName;
 
         if (ActiveCamera != null)
         {
@@ -238,13 +339,12 @@ public class SurveillanceUI : MonoBehaviour
     {
         HidePrisonerInteractionPanel();
         ClearCurrentPrisonerTarget();
-
-        // Remove cam controll
         DisableActiveCameraControl();
         ClearActiveFeed();
         
         expandedPanel.SetActive(false);
         surveillancePanel.SetActive(true);
+        ResetFeedToggles();
     }
 
     public void TryOpen()
@@ -269,6 +369,7 @@ public class SurveillanceUI : MonoBehaviour
         expandedPanel.SetActive(false);
         HidePrisonerInteractionPanel();
         ClearActiveFeed();
+        ResetFeedToggles();
 
         rootCanvasGroup.alpha = 0f;
         rootCanvasGroup.interactable = false;
@@ -309,6 +410,7 @@ public class SurveillanceUI : MonoBehaviour
         expandedPanel.SetActive(false);
         HidePrisonerInteractionPanel();
         ClearActiveFeed();
+        ResetFeedToggles();
     }
 
     public void Close()
@@ -325,6 +427,7 @@ public class SurveillanceUI : MonoBehaviour
         surveillancePanel.SetActive(false);
         IsFeedGridViewPanelActive = false;
         expandedPanel.SetActive(false);
+        ResetFeedToggles();
     }
 
     private bool CanProcessExpandedFeedClick(PointerEventData eventData)
@@ -335,7 +438,8 @@ public class SurveillanceUI : MonoBehaviour
                && expandedImage != null
                && ActiveCamera != null
                && prisonerInteractionPanel != null
-               && eventData != null;
+               && eventData != null
+               && dayManager != null && dayManager.IsDayPhase;
     }
 
     private void UpdateCurrentPrisonerTarget()
@@ -400,9 +504,21 @@ public class SurveillanceUI : MonoBehaviour
                && expandedPanel.activeInHierarchy
                && expandedImage != null
                && ActiveCamera != null
-               && ActiveRoom != null
                && Mouse.current != null
-               && !SurveillancePrisonerInteractionPanel.IsAnyOpen;
+               && !SurveillancePrisonerInteractionPanel.IsAnyOpen
+               && dayManager != null && dayManager.IsDayPhase;
+    }
+
+    private GameObject ResolveActiveRoom(SurveillanceFeed feed)
+    {
+        if (RoomManager.Instance == null || feed == null)
+            return null;
+
+        string roomName = string.IsNullOrWhiteSpace(feed.roomName)
+            ? feed.displayName
+            : feed.roomName;
+
+        return RoomManager.Instance.GetRoomByName(roomName);
     }
 
     private bool TryGetSourceFeedUv(Vector2 screenPosition, Camera eventCamera, out Vector2 sourceUv)
@@ -491,7 +607,7 @@ public class SurveillanceUI : MonoBehaviour
     private bool IsPrisonerInActiveRoom(PrisonerActionController prisoner)
     {
         if (ActiveRoom == null)
-            return false;
+            return true;
 
         return prisoner.transform == ActiveRoom.transform || prisoner.transform.IsChildOf(ActiveRoom.transform);
     }
@@ -546,8 +662,64 @@ public class SurveillanceUI : MonoBehaviour
 
     private void ClearActiveFeed()
     {
+        ClearEvidenceObservation();
+        if (evidenceOverlay != null)
+        {
+            evidenceOverlay.SetNightInterference(0f);
+        }
+
         ActiveFeed = null;
         ActiveCamera = null;
         ActiveRoom = null;
+    }
+
+    private void UpdateEvidenceEffects()
+    {
+        EnsureEvidenceSetup();
+
+        if (evidenceManager == null || evidenceOverlay == null)
+            return;
+
+        evidenceOverlay.SetNightInterference(evidenceManager.NightFeedInterferenceIntensity);
+
+        if (!evidenceManager.TryGetVisibleHighRiskEvidence(
+                ActiveRoom,
+                out PrisonerActionController highRiskPrisoner,
+                out HighRiskEvidenceDefinition highRiskDefinition))
+        {
+            ClearEvidenceObservation();
+            return;
+        }
+
+        if (observedHighRiskPrisoner != highRiskPrisoner
+            || observedHighRiskType != highRiskDefinition.EvidenceType)
+        {
+            observedHighRiskPrisoner = highRiskPrisoner;
+            observedHighRiskType = highRiskDefinition.EvidenceType;
+            highRiskObserveTimer = 0f;
+            evidenceOverlay.ClearDayCue();
+        }
+
+        highRiskObserveTimer += Time.deltaTime;
+        float requiredObserveSeconds = highRiskDefinition.ObserveSeconds > 0f
+            ? highRiskDefinition.ObserveSeconds
+            : evidenceManager.DefaultHighRiskObserveSeconds;
+
+        if (highRiskObserveTimer >= requiredObserveSeconds)
+        {
+            evidenceOverlay.ShowDayCue(highRiskDefinition);
+        }
+    }
+
+    private void ClearEvidenceObservation()
+    {
+        observedHighRiskPrisoner = null;
+        observedHighRiskType = HighRiskEvidenceType.None;
+        highRiskObserveTimer = 0f;
+
+        if (evidenceOverlay != null)
+        {
+            evidenceOverlay.ClearDayCue();
+        }
     }
 }

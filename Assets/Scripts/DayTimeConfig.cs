@@ -1,6 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
+
+public enum DayPhase
+{
+    Day,
+    Night
+}
 
 public enum DayFormat
 {
@@ -15,7 +20,14 @@ public class DayTimeConfig : ScriptableObject
     [Tooltip("Determines if a full day is 12 hours or 24 hours.")]
     public DayFormat dayFormat = DayFormat.TwentyFourHour;
 
+    [Header("Day Phase")]
+    public List<TimeSegment> daySegments;
+
+    [Header("Night Phase")]
+    public List<TimeSegment> nightSegments;
+
     [Space]
+    [Tooltip("Legacy full-day segments. Used as a fallback until Day/Night segments are authored.")]
     public List<TimeSegment> segments;
 
     /// <summary>
@@ -24,9 +36,12 @@ public class DayTimeConfig : ScriptableObject
     /// </summary>
     public float TotalRealDuration()
     {
-        float total = 0f;
-        foreach (var seg in segments) total += seg.realDurationInSeconds;
-        return total;
+        return TotalRealDuration(GetConfiguredSegments(DayPhase.Day));
+    }
+
+    public float TotalRealDuration(DayPhase phase)
+    {
+        return TotalRealDuration(GetConfiguredSegments(phase));
     }
 
     /// <summary>
@@ -35,8 +50,13 @@ public class DayTimeConfig : ScriptableObject
     /// </summary>
     public float RealSecondsAtGameHour(float targetHour)
     {
+        return RealSecondsAtGameHour(DayPhase.Day, targetHour);
+    }
+
+    public float RealSecondsAtGameHour(DayPhase phase, float targetHour)
+    {
         float elapsed = 0f;
-        foreach (var seg in segments)
+        foreach (var seg in GetConfiguredSegments(phase))
         {
             if (targetHour <= seg.gameStartHour) break;
             if (targetHour >= seg.gameEndHour)
@@ -59,8 +79,14 @@ public class DayTimeConfig : ScriptableObject
     /// </summary>
     public float GameHourAtRealSeconds(float realSeconds)
     {
+        return GameHourAtRealSeconds(DayPhase.Day, realSeconds);
+    }
+
+    public float GameHourAtRealSeconds(DayPhase phase, float realSeconds)
+    {
         float remaining = realSeconds;
-        foreach (var seg in segments)
+        List<TimeSegment> configuredSegments = GetConfiguredSegments(phase);
+        foreach (var seg in configuredSegments)
         {
             if (remaining <= seg.realDurationInSeconds)
             {
@@ -69,41 +95,73 @@ public class DayTimeConfig : ScriptableObject
             }
             remaining -= seg.realDurationInSeconds;
         }
-        return segments[segments.Count - 1].gameEndHour;
+        return configuredSegments.Count > 0 ? configuredSegments[configuredSegments.Count - 1].gameEndHour : 0f;
+    }
+
+    public float PhaseStartHour(DayPhase phase)
+    {
+        List<TimeSegment> configuredSegments = GetConfiguredSegments(phase);
+        return configuredSegments.Count > 0 ? configuredSegments[0].gameStartHour : 0f;
+    }
+
+    public float PhaseEndHour(DayPhase phase)
+    {
+        List<TimeSegment> configuredSegments = GetConfiguredSegments(phase);
+        return configuredSegments.Count > 0 ? configuredSegments[configuredSegments.Count - 1].gameEndHour : 0f;
+    }
+
+    private List<TimeSegment> GetConfiguredSegments(DayPhase phase)
+    {
+        List<TimeSegment> configuredSegments = phase == DayPhase.Day ? daySegments : nightSegments;
+        if (configuredSegments != null && configuredSegments.Count > 0)
+            return configuredSegments;
+
+        if (segments != null && segments.Count > 0)
+            return segments;
+
+        return new List<TimeSegment>();
+    }
+
+    private static float TotalRealDuration(List<TimeSegment> configuredSegments)
+    {
+        float total = 0f;
+        foreach (var seg in configuredSegments)
+        {
+            total += Mathf.Max(0f, seg.realDurationInSeconds);
+        }
+
+        return total;
     }
 
     private void OnValidate()
     {
-        if (segments == null || segments.Count == 0) return;
+        ValidateSegments(daySegments, "Day");
+        ValidateSegments(nightSegments, "Night");
+        ValidateSegments(segments, "Legacy");
+    }
 
+    private void ValidateSegments(List<TimeSegment> configuredSegments, string label)
+    {
+        if (configuredSegments == null || configuredSegments.Count == 0) return;
         float maxHour = (float)dayFormat;
 
-        // 1. Validate that the sequence covers the entire day from 0 to Max
-        if (!Mathf.Approximately(segments[0].gameStartHour, 0f))
+        for (int i = 0; i < configuredSegments.Count; i++)
         {
-            Debug.LogWarning($"[DayTimeConfig] '{name}' - The first segment must start at hour 0.", this);
-        }
-
-        if (!Mathf.Approximately(segments[segments.Count - 1].gameEndHour, maxHour))
-        {
-            Debug.LogWarning($"[DayTimeConfig] '{name}' - The last segment must end at hour {maxHour} (Current format: {dayFormat}).", this);
-        }
-
-        // 2. Validate individual segments and connectivity
-        for (int i = 0; i < segments.Count; i++)
-        {
-            // Ensure segment isn't backwards or 0 duration
-            if (segments[i].gameStartHour >= segments[i].gameEndHour)
+            if (configuredSegments[i].gameStartHour >= configuredSegments[i].gameEndHour)
             {
-                Debug.LogWarning($"[DayTimeConfig] '{name}' - Segment {i} is invalid: Start Hour ({segments[i].gameStartHour}) must be less than End Hour ({segments[i].gameEndHour}).", this);
+                Debug.LogWarning($"[DayTimeConfig] '{name}' - {label} segment {i} is invalid: Start Hour ({configuredSegments[i].gameStartHour}) must be less than End Hour ({configuredSegments[i].gameEndHour}).", this);
             }
 
-            // Ensure this segment connects perfectly to the next one
-            if (i < segments.Count - 1)
+            if (configuredSegments[i].gameEndHour > maxHour)
             {
-                if (!Mathf.Approximately(segments[i].gameEndHour, segments[i + 1].gameStartHour))
+                Debug.LogWarning($"[DayTimeConfig] '{name}' - {label} segment {i} ends after hour {maxHour}.", this);
+            }
+
+            if (i < configuredSegments.Count - 1)
+            {
+                if (!Mathf.Approximately(configuredSegments[i].gameEndHour, configuredSegments[i + 1].gameStartHour))
                 {
-                    Debug.LogWarning($"[DayTimeConfig] '{name}' - Gap or overlap detected! Segment {i} ends at {segments[i].gameEndHour}, but Segment {i + 1} starts at {segments[i + 1].gameStartHour}.", this);
+                    Debug.LogWarning($"[DayTimeConfig] '{name}' - Gap or overlap detected in {label}! Segment {i} ends at {configuredSegments[i].gameEndHour}, but Segment {i + 1} starts at {configuredSegments[i + 1].gameStartHour}.", this);
                 }
             }
         }
