@@ -10,14 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ef41d8c7da44c514da497e3b0219bbb9, type: 3}
-  m_Name: NightAttackRoute
+  m_Name: NightAttackRoute 1
   m_EditorClassIdentifier: Assembly-CSharp::NightAttackRoute
   waypoints:
-  - roomName: Prison_Workshop
+  - roomName: FourPeopleDorm02
     stayDuration: 5
-  - roomName: Electrical_Room
+  - roomName: FittingRoom
     stayDuration: 5
-  - roomName: Interrogation_Room
+  - roomName: Cafe
+    stayDuration: 5
+  - roomName: Prison_Administration_Office
     stayDuration: 5
   finalRoomName: Surveillance_Room
   moveSpeed: 1.5

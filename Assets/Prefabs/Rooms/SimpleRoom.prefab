@@ -848,7 +848,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SurveillanceCamController
   playerResource: {fileID: 0}
-  camBatteryConsumption: 0.01
+  camBatteryConsumption: 0.005
+  room: {fileID: 0}
   yawSpeed: 25
   pitchSpeed: 18
   yawLimit: 45
@@ -1028,10 +1029,10 @@ Light:
   serializedVersion: 12
   m_Type: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 1
-  m_Range: 10
-  m_SpotAngle: 30
-  m_InnerSpotAngle: 21.80208
+  m_Intensity: 4
+  m_Range: 12.563189
+  m_SpotAngle: 52.64129
+  m_InnerSpotAngle: 36.672657
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
     m_Type: 0
@@ -1125,7 +1126,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SurveillanceCamLightController
   camLight: {fileID: 4360029503422421324}
   playerResource: {fileID: 0}
-  batteryDrainsPerSecond: 0.2
+  batteryDrainsPerSecond: 0.1
 --- !u!1 &6188336901858308649
 GameObject:
   m_ObjectHideFlags: 0
