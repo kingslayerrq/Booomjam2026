@@ -16,6 +16,7 @@ public class PlayerInteract : MonoBehaviour
     private readonly RaycastHit[] hitBuffer = new RaycastHit[16];
 
     [Header("Debug Settings")] 
+    [SerializeField] private bool isDebug = false;
     [SerializeField] private float debugInteractRange;
     [Range(8, 32)]
     [SerializeField] private int coneLinesCount;
@@ -37,15 +38,19 @@ public class PlayerInteract : MonoBehaviour
         {
             currentInteractable.Interact();
         }
+
+
+        if (isDebug)
+        {
+            // Debug ray
+            Vector3 forward = playerCamera.forward * debugInteractRange;
+            bool isHit = Physics.Raycast(playerCamera.position, playerCamera.forward, out _, debugInteractRange);
         
+            Debug.DrawRay(playerCamera.position, forward, isHit ? Color.green : Color.red);
         
-        // Debug ray
-        Vector3 forward = playerCamera.forward * debugInteractRange;
-        bool isHit = Physics.Raycast(playerCamera.position, playerCamera.forward, out _, debugInteractRange);
+            DrawDebugInteractCircle();
+        }
         
-        Debug.DrawRay(playerCamera.position, forward, isHit ? Color.green : Color.red);
-        
-        DrawDebugInteractCircle();
     }
 
     private void UpdateCurrentInteractTarget()

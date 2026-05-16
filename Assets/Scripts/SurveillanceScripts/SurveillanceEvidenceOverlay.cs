@@ -6,12 +6,12 @@ public class SurveillanceEvidenceOverlay : MonoBehaviour
     [SerializeField] private RectTransform overlayRoot;
     [SerializeField] private Image flickerImage;
     [SerializeField] private Image spiritOrbImage;
-    [SerializeField] private AudioSource audioSource;
 
     private HighRiskEvidenceType activeDayCue = HighRiskEvidenceType.None;
     private HighRiskEvidenceDefinition activeDefinition;
     private float nightInterferenceIntensity;
     private float nextStrangeSoundTime;
+    private float nextGlitchSoundTime;
     private AudioClip fallbackStrangeSoundClip;
     private Sprite spiritOrbSprite;
 
@@ -45,18 +45,6 @@ public class SurveillanceEvidenceOverlay : MonoBehaviour
             spiritOrbImage.rectTransform.sizeDelta = new Vector2(34f, 34f);
         }
 
-        if (audioSource == null)
-        {
-            audioSource = overlayRoot.gameObject.GetComponent<AudioSource>();
-            if (audioSource == null)
-            {
-                audioSource = overlayRoot.gameObject.AddComponent<AudioSource>();
-            }
-
-            audioSource.playOnAwake = false;
-            audioSource.loop = false;
-            audioSource.spatialBlend = 0f;
-        }
     }
 
     public void ShowDayCue(HighRiskEvidenceDefinition definition)
@@ -116,8 +104,18 @@ public class SurveillanceEvidenceOverlay : MonoBehaviour
         if (!isActive)
             return;
 
+        TryPlayGlitchSound();
         float alpha = Random.Range(0f, maxAlpha);
         flickerImage.color = new Color(1f, 1f, 1f, alpha);
+    }
+
+    private void TryPlayGlitchSound()
+    {
+        if (Time.time < nextGlitchSoundTime)
+            return;
+
+        GameAudioManager.Instance.PlayRandomGlitch();
+        nextGlitchSoundTime = Time.time + Random.Range(0.8f, 1.6f);
     }
 
     private void UpdateSpiritOrb()
@@ -157,7 +155,7 @@ public class SurveillanceEvidenceOverlay : MonoBehaviour
 
     private void PlayStrangeSound()
     {
-        if (audioSource == null || activeDefinition == null)
+        if (activeDefinition == null)
             return;
 
         AudioClip clip = activeDefinition.StrangeSoundClip != null
@@ -166,7 +164,7 @@ public class SurveillanceEvidenceOverlay : MonoBehaviour
 
         if (clip != null)
         {
-            audioSource.PlayOneShot(clip);
+            GameAudioManager.Instance.PlayActiveSurveillanceCue(clip);
         }
 
         nextStrangeSoundTime = Time.time + activeDefinition.StrangeSoundInterval;

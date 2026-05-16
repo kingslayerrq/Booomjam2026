@@ -14,5 +14,6 @@ public enum AuxiliaryEvidenceType
     ConstantMovement,
     AbnormalBatteryDrain,
     FeatureMismatch,
-    ObjectMoved
+    ObjectMoved,
+    Jumpscare
 }

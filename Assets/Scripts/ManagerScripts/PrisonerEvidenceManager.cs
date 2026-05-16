@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
 public class PrisonerEvidenceManager : MonoBehaviour
@@ -17,7 +18,8 @@ public class PrisonerEvidenceManager : MonoBehaviour
         AuxiliaryEvidenceType.ConstantMovement,
         AuxiliaryEvidenceType.AbnormalBatteryDrain,
         AuxiliaryEvidenceType.FeatureMismatch,
-        AuxiliaryEvidenceType.ObjectMoved
+        AuxiliaryEvidenceType.ObjectMoved,
+        AuxiliaryEvidenceType.Jumpscare
     };
 
     private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
@@ -54,11 +56,13 @@ public class PrisonerEvidenceManager : MonoBehaviour
     private readonly Dictionary<PrisonerActionController, Renderer[]> featureMismatchRenderers =
         new Dictionary<PrisonerActionController, Renderer[]>();
     private readonly HashSet<PrisonerActionController> objectMovedControllers = new HashSet<PrisonerActionController>();
+    private readonly HashSet<ScheduleBlock> triggeredJumpscareBlocks = new HashSet<ScheduleBlock>();
     private readonly HashSet<Prisoner> wronglyLockedUpPrisoners = new HashSet<Prisoner>();
 
     private MaterialPropertyBlock featureMismatchBlock;
     private DayScheduleConfig currentScheduleConfig;
     private float nightFeedInterferenceIntensity;
+    private Coroutine pendingNightEnergyPenaltyCoroutine;
 
     public static PrisonerEvidenceManager Instance
     {
@@ -126,6 +130,7 @@ public class PrisonerEvidenceManager : MonoBehaviour
         nextConstantMovementRetargetTimes.Clear();
         savedWanderSpeeds.Clear();
         objectMovedControllers.Clear();
+        triggeredJumpscareBlocks.Clear();
         wronglyLockedUpPrisoners.Clear();
 
         if (prisoners == null)
@@ -188,7 +193,7 @@ public class PrisonerEvidenceManager : MonoBehaviour
         switch (evidenceType)
         {
             case AuxiliaryEvidenceType.OutOfScheduleRoom:
-                MoveToOutOfScheduleRoom(controller);
+                MoveToOutOfScheduleRoom(controller, definition);
                 break;
             case AuxiliaryEvidenceType.StareAtCamera:
                 controller.SetBillboardFollowCamera(true);
@@ -308,6 +313,49 @@ public class PrisonerEvidenceManager : MonoBehaviour
         return total;
     }
 
+    public bool TryConsumeAuxiliaryJumpscare(
+        GameObject activeRoom,
+        out Sprite profilePic,
+        out AuxiliaryEvidenceDefinition definition)
+    {
+        profilePic = null;
+        definition = null;
+
+        if (activeRoom == null)
+            return false;
+
+        foreach (KeyValuePair<PrisonerActionController, AuxiliaryEvidenceType> pair in activeAuxiliaries)
+        {
+            PrisonerActionController controller = pair.Key;
+            ScheduleBlock block = controller != null ? controller.CurrentScheduleBlock : null;
+            if (controller == null
+                || pair.Value != AuxiliaryEvidenceType.Jumpscare
+                || controller.Prisoner == null
+                || controller.Prisoner.IsLockedUp
+                || block == null
+                || triggeredJumpscareBlocks.Contains(block)
+                || !IsControllerInRoom(controller, activeRoom))
+            {
+                continue;
+            }
+
+            profilePic = controller.Prisoner.PrisonerData.PrisonerHeadProfilePic;
+            if (profilePic == null)
+            {
+                Debug.LogWarning($"[Evidence] Jumpscare skipped for prisoner {controller.Prisoner.PrisonerID}: no profile pic assigned.");
+                triggeredJumpscareBlocks.Add(block);
+                continue;
+            }
+
+            definition = ResolveAuxiliaryDefinition(block);
+            triggeredJumpscareBlocks.Add(block);
+            Debug.Log($"[Evidence] Jumpscare triggered by prisoner {controller.Prisoner.PrisonerID} in {activeRoom.name}.");
+            return true;
+        }
+
+        return false;
+    }
+
     private void AssignBadPrisonerEvidence(Prisoner prisoner)
     {
         if (HasConcreteBadScheduleAction(prisoner))
@@ -371,6 +419,7 @@ public class PrisonerEvidenceManager : MonoBehaviour
         if (prisonerManager == null)
             return;
 
+        float pendingNightEnergyReductionPercent = 0f;
         IReadOnlyList<Prisoner> prisoners = prisonerManager.PrisonerList;
         for (int i = 0; i < prisoners.Count; i++)
         {
@@ -394,9 +443,21 @@ public class PrisonerEvidenceManager : MonoBehaviour
                     );
                     break;
                 case HighRiskEvidenceType.SpiritOrb:
-                    playerResource?.AddTemporaryMaxEnergyPenalty(definition.EnergyMaxReduction);
+                    pendingNightEnergyReductionPercent += definition.NightStartEnergyReductionPercent;
                     break;
             }
+        }
+
+        if (pendingNightEnergyReductionPercent > 0f)
+        {
+            if (pendingNightEnergyPenaltyCoroutine != null)
+            {
+                StopCoroutine(pendingNightEnergyPenaltyCoroutine);
+            }
+
+            pendingNightEnergyPenaltyCoroutine = StartCoroutine(
+                ApplyNightStartEnergyReductionAfterReset(pendingNightEnergyReductionPercent)
+            );
         }
     }
 
@@ -404,7 +465,27 @@ public class PrisonerEvidenceManager : MonoBehaviour
     {
         nightFeedInterferenceIntensity = 0f;
         NightAudioPromptMultiplier = 1f;
+        if (pendingNightEnergyPenaltyCoroutine != null)
+        {
+            StopCoroutine(pendingNightEnergyPenaltyCoroutine);
+            pendingNightEnergyPenaltyCoroutine = null;
+        }
+
         playerResource?.ClearTemporaryMaxEnergyPenalty();
+    }
+
+    private IEnumerator ApplyNightStartEnergyReductionAfterReset(float percent)
+    {
+        yield return null;
+
+        pendingNightEnergyPenaltyCoroutine = null;
+        ResolveReferences();
+
+        if (playerResource == null)
+            yield break;
+
+        playerResource.ReduceEnergyByMaxPercent(percent);
+        Debug.Log($"[Evidence] Uncaught SpiritOrb penalty: -{percent:P0} energy at night start.");
     }
 
     private void ResolveWrongLockupConsequences()
@@ -429,24 +510,49 @@ public class PrisonerEvidenceManager : MonoBehaviour
                && block.HasAuxiliaryEvidence;
     }
 
-    private void MoveToOutOfScheduleRoom(PrisonerActionController controller)
+    private void MoveToOutOfScheduleRoom(PrisonerActionController controller, AuxiliaryEvidenceDefinition definition)
     {
         if (RoomManager.Instance == null)
             return;
+
+        IReadOnlyList<string> alternateRooms = definition != null ? definition.AlternateRooms : null;
+        if (alternateRooms == null || alternateRooms.Count == 0)
+        {
+            Debug.LogWarning("[Evidence] OutOfScheduleRoom has no alternate rooms configured.");
+            return;
+        }
 
         string scheduledRoomName = controller.CurrentAction != null
             ? controller.CurrentAction.GetTargetRoomName(controller)
             : null;
 
         List<GameObject> candidates = new List<GameObject>();
-        foreach (KeyValuePair<string, GameObject> pair in RoomManager.Instance.RoomNameToObject)
+        HashSet<string> visitedRoomNames = new HashSet<string>();
+        for (int i = 0; i < alternateRooms.Count; i++)
         {
-            if (pair.Value != null && pair.Key != scheduledRoomName)
-                candidates.Add(pair.Value);
+            string roomName = alternateRooms[i];
+            if (string.IsNullOrWhiteSpace(roomName)
+                || roomName == scheduledRoomName
+                || !visitedRoomNames.Add(roomName))
+            {
+                continue;
+            }
+
+            GameObject room = RoomManager.Instance.GetRoomByName(roomName);
+            if (room != null)
+            {
+                candidates.Add(room);
+            }
         }
 
         if (candidates.Count > 0)
+        {
             controller.EnterRoom(candidates[Random.Range(0, candidates.Count)]);
+        }
+        else
+        {
+            Debug.LogWarning($"[Evidence] OutOfScheduleRoom found no valid alternate room for prisoner {controller.Prisoner.PrisonerID}.");
+        }
     }
 
     private void RestoreWanderSpeed(PrisonerActionController controller)

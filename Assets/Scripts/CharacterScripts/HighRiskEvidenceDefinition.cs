@@ -17,7 +17,7 @@ public class HighRiskEvidenceDefinition : ScriptableObject
     [Header("Night Consequence")]
     [SerializeField] private float nightFeedInterferenceIntensity = 0.12f;
     [SerializeField] private float nightAudioPromptMultiplierPenalty = 0.25f;
-    [SerializeField] private float energyMaxReduction = 20f;
+    [SerializeField, Range(0f, 1f)] private float nightStartEnergyReductionPercent = 0.15f;
 
     public HighRiskEvidenceType EvidenceType => evidenceType;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? evidenceType.ToString() : displayName;
@@ -29,7 +29,7 @@ public class HighRiskEvidenceDefinition : ScriptableObject
     public float StrangeSoundInterval => Mathf.Max(0.1f, strangeSoundInterval);
     public float NightFeedInterferenceIntensity => Mathf.Max(0f, nightFeedInterferenceIntensity);
     public float NightAudioPromptMultiplierPenalty => Mathf.Max(0f, nightAudioPromptMultiplierPenalty);
-    public float EnergyMaxReduction => Mathf.Max(0f, energyMaxReduction);
+    public float NightStartEnergyReductionPercent => Mathf.Clamp01(nightStartEnergyReductionPercent);
 
     public static HighRiskEvidenceDefinition CreateRuntimeFallback(HighRiskEvidenceType evidenceType)
     {

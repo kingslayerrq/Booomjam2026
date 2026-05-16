@@ -41,7 +41,7 @@ public class BadActionZoneTrigger : MonoBehaviour
         return ActionTriggers.TryGetValue(action, out trigger) && trigger != null;
     }
 
-    public float RequiredStaySeconds => requiredStaySeconds;
+    public float RequiredStaySeconds => GetRequiredStaySeconds();
 
     private void Awake()
     {
@@ -101,7 +101,7 @@ public class BadActionZoneTrigger : MonoBehaviour
         timer += Time.deltaTime;
         stayTimers[prisonerActionController] = timer;
 
-        if (timer >= requiredStaySeconds)
+        if (timer >= GetRequiredStaySeconds())
         {
             Resolve(prisonerActionController);
         }
@@ -162,5 +162,13 @@ public class BadActionZoneTrigger : MonoBehaviour
     private Transform GetTargetPoint()
     {
         return actionTargetPoint != null ? actionTargetPoint : transform;
+    }
+
+    private float GetRequiredStaySeconds()
+    {
+        if (requiredAction != null && requiredAction.BadActionZoneStaySecondsOverride > 0f)
+            return requiredAction.BadActionZoneStaySecondsOverride;
+
+        return requiredStaySeconds;
     }
 }

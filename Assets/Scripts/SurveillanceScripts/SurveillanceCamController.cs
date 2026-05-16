@@ -32,6 +32,7 @@ public class SurveillanceCamController : MonoBehaviour
     private float pitchOffset;
 
     private bool isControlled;
+    private bool cameraMoveLoopActive;
 
     public SurveillanceCamLightController CamLightController
     {
@@ -60,10 +61,16 @@ public class SurveillanceCamController : MonoBehaviour
         if (!isControlled)
             return;
         if (GameManager.IsMenuOpen || GameManager.BlockCamControl || SurveillancePrisonerInteractionPanel.IsAnyOpen)
+        {
+            SetCameraMoveLoop(false);
             return;
+        }
 
         if (!ConsumeControlBattery())
+        {
+            SetCameraMoveLoop(false);
             return;
+        }
 
         // Toggle lights
         if (Mouse.current.rightButton.wasPressedThisFrame)
@@ -71,8 +78,10 @@ public class SurveillanceCamController : MonoBehaviour
             CamLightController?.ToggleCamLight();
         }
 
+        bool movingCamera = IsMovementInputPressed();
         HandleCameraInput();
         ApplyRotation();
+        SetCameraMoveLoop(movingCamera);
 
     }
 
@@ -88,6 +97,7 @@ public class SurveillanceCamController : MonoBehaviour
         if (!isControlled)
         {
             CamLightController?.TurnOffCamLight();
+            SetCameraMoveLoop(false);
             return;
         }
 
@@ -126,6 +136,24 @@ public class SurveillanceCamController : MonoBehaviour
 
         yawOffset = Mathf.Clamp(yawOffset, -yawLimit, yawLimit);
         pitchOffset = Mathf.Clamp(pitchOffset, -lookUpLimit, lookDownLimit);
+    }
+
+    private bool IsMovementInputPressed()
+    {
+        return Keyboard.current != null
+               && (Keyboard.current.aKey.isPressed
+                   || Keyboard.current.dKey.isPressed
+                   || Keyboard.current.wKey.isPressed
+                   || Keyboard.current.sKey.isPressed);
+    }
+
+    private void SetCameraMoveLoop(bool active)
+    {
+        if (cameraMoveLoopActive == active)
+            return;
+
+        cameraMoveLoopActive = active;
+        GameAudioManager.Instance.SetCameraMoveLoopActive(active, transform);
     }
 
     private void ApplyRotation()

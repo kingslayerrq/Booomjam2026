@@ -22,4 +22,4 @@ MonoBehaviour:
   strangeSoundInterval: 5
   nightFeedInterferenceIntensity: 0.12
   nightAudioPromptMultiplierPenalty: 0.25
-  energyMaxReduction: 20
+  nightStartEnergyReductionPercent: 0.15

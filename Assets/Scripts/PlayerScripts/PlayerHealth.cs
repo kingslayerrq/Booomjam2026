@@ -36,6 +36,7 @@ public class PlayerHealth : MonoBehaviour
     private void TakeDamage(int damage)
     {
         currentHealth = Mathf.Max(currentHealth - damage, 0);
+        GameAudioManager.Instance.PlayHit();
         Debug.Log($"Took  {damage} damage, remaining {currentHealth} health.");
         if (currentHealth <= 0)
         {

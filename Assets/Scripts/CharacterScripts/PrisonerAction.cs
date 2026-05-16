@@ -19,6 +19,7 @@ public abstract class PrisonerAction : ScriptableObject
     
     public string ActionName => actionName;
     public string TargetRoomName => targetRoomName;
+    public virtual float BadActionZoneStaySecondsOverride => -1f;
 
     public virtual string GetTargetRoomName(PrisonerActionController controller)
     {

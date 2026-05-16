@@ -14,11 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PrisonerData
   prisonerName: 
   prisonerID: 008
+  prisonerHeadProfilePic: {fileID: 21300000, guid: 6f7b1346c97d77a43b10a3b1f587e5f1, type: 3}
+  arrestedReason: "\u5077\u7535\u74F6"
   assignedCellRoom: FourPeople_Room
   appearance:
-    torso: {fileID: 2100000, guid: 7a0ba8a9be51e456de729b2d4b147900, type: 2}
-    head: {fileID: 2100000, guid: 8120a9c3f7d15efc6605973138b5c573, type: 2}
-    armL: {fileID: 2100000, guid: bc38d8925f23a723568054bf6a276810, type: 2}
-    armR: {fileID: 2100000, guid: 06a54fdda54873748f81fb9c262e0511, type: 2}
-    legL: {fileID: 2100000, guid: da486afd35aca3981865a8ced3fd4d45, type: 2}
-    legR: {fileID: 2100000, guid: 6400a3a0bb25a30f89ec3b3933cd7e29, type: 2}
+    torso: {fileID: 2100000, guid: 3de0f48d8e2c485488420b777f96bdb4, type: 2}
+    head: {fileID: 2100000, guid: 7ad7c9e717b621b4d8fa6b2d5eed655c, type: 2}
+    armL: {fileID: 2100000, guid: c8dc47ef0e23df24bb19d0145199c120, type: 2}
+    armR: {fileID: 2100000, guid: b4a04d0c7c887c94295904be5d8e17ad, type: 2}
+    legL: {fileID: 2100000, guid: eeaee3e245b5d044891ac07a51a8a36e, type: 2}
+    legR: {fileID: 2100000, guid: dcc57531b1373534688ecf88e62a3c59, type: 2}

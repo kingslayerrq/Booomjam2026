@@ -15,5 +15,9 @@ MonoBehaviour:
   totalAttackers: 1
   maxSimultaneous: 1
   waveLaunchInterval: 3
+  invisibleAttackerChance: 0.5
   routePool:
   - {fileID: 11400000, guid: 4aaac4859262c1c42875f63f420a7346, type: 2}
+  - {fileID: 11400000, guid: 322991c9145979c4cb44280c1bd412c3, type: 2}
+  - {fileID: 11400000, guid: 0c8b40fdfcaae2744b81c909658a10d7, type: 2}
+  - {fileID: 11400000, guid: cf46f2c0906b3af46a782befdd87aa8f, type: 2}

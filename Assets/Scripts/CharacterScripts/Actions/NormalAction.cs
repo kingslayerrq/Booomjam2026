@@ -24,9 +24,6 @@ public class NormalAction : PrisonerAction
 
     public override string GetTargetRoomName(PrisonerActionController controller)
     {
-        string cached = controller.CurrentScheduleBlock?.resolvedTargetRoomName;
-        if (!string.IsNullOrWhiteSpace(cached))
-            return cached;
         return ResolveRoomName(controller);
     }
 

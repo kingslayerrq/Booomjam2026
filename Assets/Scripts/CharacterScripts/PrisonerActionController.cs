@@ -397,6 +397,12 @@ public class PrisonerActionController : MonoBehaviour
             return;
 
         Vector3 currentPosition = transform.position;
+        if (GetHorizontalDistance(currentPosition, moveTargetWorldPosition) <= MoveArriveDistance)
+        {
+            hasMoveTarget = false;
+            return;
+        }
+
         Vector3 nextPosition = Vector3.MoveTowards(
             currentPosition,
             moveTargetWorldPosition,
@@ -416,7 +422,7 @@ public class PrisonerActionController : MonoBehaviour
         MoveToPosition(nextPosition);
         UpdateStuckRecovery(deltaTime);
 
-        if (Vector3.Distance(transform.position, moveTargetWorldPosition) > MoveArriveDistance)
+        if (GetHorizontalDistance(transform.position, moveTargetWorldPosition) > MoveArriveDistance)
             return;
 
         hasMoveTarget = false;
@@ -630,6 +636,13 @@ public class PrisonerActionController : MonoBehaviour
             return true;
 
         return !IsMovementBlocked(toTarget / distance, distance, out _);
+    }
+
+    private static float GetHorizontalDistance(Vector3 a, Vector3 b)
+    {
+        a.y = 0f;
+        b.y = 0f;
+        return Vector3.Distance(a, b);
     }
 
     private bool IsMovementBlocked(Vector3 direction, float distance, out RaycastHit blockingHit)

@@ -14,9 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AuxiliaryEvidenceDefinition
   evidenceType: 1
   displayName: OutOfScheduleRoom
-  alternateRooms: []
+  alternateRooms:
+  - FittingRoom
+  - Loading_Dock_Room
+  - Guard_Break_Room
+  - FourPeople_Room
+  - Prison_Workshop
+  - Cafe
+  - Electrical_Room
+  - FourPeopleDorm02
+  - Gate
   constantMovementRetargetSeconds: 0.35
+  constantMovementSpeedMultiplier: 2
   abnormalBatteryDrainPerSecond: 0.05
-  crowdedRoomPrisonerThreshold: 2
   featureMismatchColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   objectMoveLocalOffset: {x: 0.35, y: 0, z: 0.2}

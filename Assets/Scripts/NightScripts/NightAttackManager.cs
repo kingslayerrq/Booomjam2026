@@ -5,6 +5,15 @@ using Random = UnityEngine.Random;
 
 public class NightAttackManager : MonoBehaviour
 {
+    private const string AdminApproachRoomName = "Prison_Administration_Office";
+    private const string InterrogationApproachRoomName = "Interrogation_Room";
+
+    private enum AttackDestinationSide
+    {
+        Left,
+        Right
+    }
+
     [Header("References")]
     [SerializeField] private DayManager dayManager;
     [SerializeField] private PrisonerManager prisonerManager;
@@ -15,15 +24,28 @@ public class NightAttackManager : MonoBehaviour
     [SerializeField] private NightAttackConfig[] nightConfigs;
     [Tooltip("All attackable doors in the scene. Drag DoorInteractable GameObjects here.")]
     [SerializeField] private DoorInteractable[] doors;
+    [RoomDropdown]
+    [Tooltip("Final room for all night attackers.")]
+    [SerializeField] private string surveillanceRoomName = "Surveillance_Room";
+    [Tooltip("Final destination used when the previous room is Prison_Administration_Office.")]
+    [SerializeField] private Transform leftFinalDestination;
+    [Tooltip("Door the player must close for the left (Admin) approach.")]
+    [SerializeField] private DoorInteractable leftDoor;
+    [Tooltip("Final destination used when the previous room is Interrogation_Room.")]
+    [SerializeField] private Transform rightFinalDestination;
+    [Tooltip("Door the player must close for the right (Interrogation) approach.")]
+    [SerializeField] private DoorInteractable rightDoor;
     [Tooltip("Seconds the player has to close the door once an attacker arrives.")]
     [SerializeField] private float doorCountdownSeconds = 5f;
 
     private readonly List<NightAttackerController> activeAttackers = new List<NightAttackerController>();
     private readonly Queue<Prisoner> pendingAttackers = new Queue<Prisoner>();
-    private readonly Dictionary<DoorInteractable, NightAttackerController> doorAssignments =
-        new Dictionary<DoorInteractable, NightAttackerController>();
+    private readonly Dictionary<NightAttackerController, DoorInteractable> attackerDoors =
+        new Dictionary<NightAttackerController, DoorInteractable>();
     private readonly Dictionary<NightAttackerController, float> doorTimers =
         new Dictionary<NightAttackerController, float>();
+    private readonly Dictionary<NightAttackerController, AttackDestinationSide> attackerSides =
+        new Dictionary<NightAttackerController, AttackDestinationSide>();
 
     private NightAttackConfig currentConfig;
     private float nextWaveLaunchTime;
@@ -37,6 +59,7 @@ public class NightAttackManager : MonoBehaviour
     {
         if (dayManager != null)
         {
+            dayManager.OnDayStarted += HandleDayStarted;
             dayManager.OnNightStarted += HandleNightStarted;
             dayManager.OnNightEnded += HandleNightEnded;
         }
@@ -46,6 +69,7 @@ public class NightAttackManager : MonoBehaviour
     {
         if (dayManager != null)
         {
+            dayManager.OnDayStarted -= HandleDayStarted;
             dayManager.OnNightStarted -= HandleNightStarted;
             dayManager.OnNightEnded -= HandleNightEnded;
         }
@@ -55,20 +79,27 @@ public class NightAttackManager : MonoBehaviour
     {
         if (!nightActive) return;
 
-        TickDoorTimers();
         TryLaunchNextWave();
+    }
+
+    private void LateUpdate()
+    {
+        if (!nightActive) return;
+
+        TickDoorTimers();
     }
 
     private void HandleNightStarted()
     {
         int day = dayManager.CurrentDay;
-        if (nightConfigs == null || day >= nightConfigs.Length || nightConfigs[day] == null)
+        int configIndex = day - 1;
+        if (nightConfigs == null || configIndex >= nightConfigs.Length || nightConfigs[configIndex] == null)
         {
             Debug.Log($"[NightAttackManager] No config for day {day} — skipping night attack.");
             return;
         }
 
-        currentConfig = nightConfigs[day];
+        currentConfig = nightConfigs[configIndex];
         nightActive = true;
 
         SelectAndEnqueueAttackers();
@@ -76,6 +107,11 @@ public class NightAttackManager : MonoBehaviour
 
         Debug.Log($"[NightAttackManager] Night started — day {day}, " +
                   $"{pendingAttackers.Count} attackers queued, max simultaneous: {currentConfig.maxSimultaneous}");
+    }
+
+    private void HandleDayStarted()
+    {
+        CleanupNight();
     }
 
     private void HandleNightEnded()
@@ -104,14 +140,18 @@ public class NightAttackManager : MonoBehaviour
         int launched = 0;
         while (launched < slotsAvailable && pendingAttackers.Count > 0)
         {
-            NightAttackRoute route = PickRouteForAvailableDoor();
+            NightAttackRoute route = PickAvailableRoute();
             if (route == null)
             {
-                Debug.LogWarning("[NightAttackManager] No available route with a free door — waiting.");
+                Debug.LogWarning("[NightAttackManager] No available route with a free final destination — waiting.");
                 break;
             }
 
-            DoorInteractable targetDoor = FindDoorForRoom(route.finalRoomName);
+            if (!TryGetDestinationForRoute(route, out AttackDestinationSide side, out Transform destination))
+            {
+                Debug.LogWarning($"[NightAttackManager] Route '{route.name}' has no valid surveillance destination.");
+                break;
+            }
 
             Prisoner prisoner = pendingAttackers.Dequeue();
             PrisonerActionController pac = prisonerManager.GetPrisonerController(prisoner);
@@ -125,7 +165,9 @@ public class NightAttackManager : MonoBehaviour
             attacker.OnArrivedAtDoor += HandleArrivedAtDoor;
             attacker.OnReturnedToCell += HandleReturnedToCell;
             activeAttackers.Add(attacker);
-            attacker.Initialize(route, pac, targetDoor != null ? targetDoor.ArrivalTransform : null);
+            attackerSides[attacker] = side;
+            bool invisible = Random.value < currentConfig.invisibleAttackerChance;
+            attacker.Initialize(route, pac, surveillanceRoomName, destination, invisible);
             launched++;
         }
 
@@ -133,7 +175,7 @@ public class NightAttackManager : MonoBehaviour
             nextWaveLaunchTime = Time.time + currentConfig.waveLaunchInterval;
     }
 
-    private NightAttackRoute PickRouteForAvailableDoor()
+    private NightAttackRoute PickAvailableRoute()
     {
         if (currentConfig.routePool == null) return null;
 
@@ -141,23 +183,23 @@ public class NightAttackManager : MonoBehaviour
         {
             if (route == null) continue;
 
-            // Skip routes whose final door is already occupied
-            DoorInteractable door = FindDoorForRoom(route.finalRoomName);
-            if (door == null) continue;
-            if (doorAssignments.ContainsKey(door)) continue;
+            if (!TryGetDestinationForRoute(route, out AttackDestinationSide side, out Transform destination))
+                continue;
 
-            // Skip if an active attacker is already heading to this final room
-            bool finalRoomTaken = false;
-            foreach (var active in activeAttackers)
+            if (destination == null)
+                continue;
+
+            bool sideTaken = false;
+            foreach (AttackDestinationSide activeSide in attackerSides.Values)
             {
-                if (active.Route != null && active.Route.finalRoomName == route.finalRoomName)
+                if (activeSide == side)
                 {
-                    finalRoomTaken = true;
+                    sideTaken = true;
                     break;
                 }
             }
 
-            if (!finalRoomTaken) return route;
+            if (!sideTaken) return route;
         }
 
         return null;
@@ -165,23 +207,26 @@ public class NightAttackManager : MonoBehaviour
 
     private void HandleArrivedAtDoor(NightAttackerController attacker)
     {
-        DoorInteractable door = FindDoorForRoom(attacker.Route.finalRoomName);
+        attackerSides.TryGetValue(attacker, out AttackDestinationSide side);
+        DoorInteractable door = side == AttackDestinationSide.Left ? leftDoor : rightDoor;
+
         if (door == null)
         {
-            Debug.LogWarning($"[NightAttackManager] No door found for room '{attacker.Route.finalRoomName}'.");
+            Debug.LogWarning($"[NightAttackManager] No door assigned for {side} side.");
             return;
         }
 
-        doorAssignments[door] = attacker;
+        attackerDoors[attacker] = door;
         doorTimers[attacker] = doorCountdownSeconds;
 
-        Debug.Log($"[NightAttackManager] Attacker {attacker.Route.finalRoomName} at door — " +
+        Debug.Log($"[NightAttackManager] Attacker arrived at {side} door ({door.name}) — " +
                   $"{doorCountdownSeconds}s countdown started.");
     }
 
     private void HandleReturnedToCell(NightAttackerController attacker)
     {
         activeAttackers.Remove(attacker);
+        attackerSides.Remove(attacker);
         Destroy(attacker);
     }
 
@@ -201,18 +246,9 @@ public class NightAttackManager : MonoBehaviour
     {
         doorTimers.Remove(attacker);
 
-        DoorInteractable door = null;
-        foreach (var pair in doorAssignments)
-        {
-            if (pair.Value == attacker)
-            {
-                door = pair.Key;
-                break;
-            }
-        }
-
-        if (door != null)
-            doorAssignments.Remove(door);
+        attackerDoors.TryGetValue(attacker, out DoorInteractable door);
+        attackerDoors.Remove(attacker);
+        attackerSides.Remove(attacker);
 
         if (door != null && !door.IsOpen)
         {
@@ -228,6 +264,16 @@ public class NightAttackManager : MonoBehaviour
 
     private void CleanupNight()
     {
+        if (!nightActive
+            && activeAttackers.Count == 0
+            && pendingAttackers.Count == 0
+            && attackerDoors.Count == 0
+            && doorTimers.Count == 0
+            && attackerSides.Count == 0)
+        {
+            return;
+        }
+
         nightActive = false;
 
         var attackersCopy = new List<NightAttackerController>(activeAttackers);
@@ -241,8 +287,9 @@ public class NightAttackManager : MonoBehaviour
 
         activeAttackers.Clear();
         pendingAttackers.Clear();
-        doorAssignments.Clear();
+        attackerDoors.Clear();
         doorTimers.Clear();
+        attackerSides.Clear();
         currentConfig = null;
 
         Debug.Log("[NightAttackManager] Night cleanup complete.");
@@ -261,13 +308,46 @@ public class NightAttackManager : MonoBehaviour
         return null;
     }
 
+    private bool TryGetDestinationForRoute(
+        NightAttackRoute route,
+        out AttackDestinationSide side,
+        out Transform destination)
+    {
+        side = AttackDestinationSide.Left;
+        destination = null;
+
+        string approachRoomName = route != null ? route.PenultimateRoomName : null;
+        if (approachRoomName == AdminApproachRoomName)
+        {
+            side = AttackDestinationSide.Left;
+            destination = leftFinalDestination;
+            return destination != null;
+        }
+
+        if (approachRoomName == InterrogationApproachRoomName)
+        {
+            side = AttackDestinationSide.Right;
+            destination = rightFinalDestination;
+            return destination != null;
+        }
+
+        return false;
+    }
+
     private IReadOnlyDictionary<DoorInteractable, float> BuildPublicTimers()
     {
         var result = new Dictionary<DoorInteractable, float>();
-        foreach (var pair in doorAssignments)
+        foreach (var pair in attackerDoors)
         {
-            if (doorTimers.TryGetValue(pair.Value, out float time))
-                result[pair.Key] = time;
+            if (!doorTimers.TryGetValue(pair.Key, out float time))
+                continue;
+
+            DoorInteractable door = pair.Value;
+            if (door == null)
+                continue;
+
+            if (!result.TryGetValue(door, out float currentTime) || time < currentTime)
+                result[door] = time;
         }
 
         return result;

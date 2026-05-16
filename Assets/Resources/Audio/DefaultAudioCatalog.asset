@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c41cc841b3a4e79be5b6e6c78a957ad, type: 3}
+  m_Name: DefaultAudioCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::AudioCatalog
+  metalFootstepLoop: {fileID: 8300000, guid: 14fb6b484901b7f48877b0d1439c7a5f, type: 3}
+  hit: {fileID: 8300000, guid: 554a9e1d35704d14dbaba94ec716dc99, type: 3}
+  glitchVariants:
+  - {fileID: 8300000, guid: c70116c1665950d4ebf4eb7ef1c29190, type: 3}
+  - {fileID: 8300000, guid: b2c8c9a268099ea43a1dc40276403ae0, type: 3}
+  - {fileID: 8300000, guid: 4509b73a77d027248b42d6718aa9ada5, type: 3}
+  drinking: {fileID: 8300000, guid: 60f4316d3e76728428dbfc48db17710b, type: 3}
+  cameraMoveLoop: {fileID: 8300000, guid: 381711ea91177c24aaa9b32adb1c673b, type: 3}
+  alarmVariants:
+  - {fileID: 8300000, guid: 1e335b8d35cef614cb442cbc7fb44b9d, type: 3}
+  - {fileID: 8300000, guid: f2cd6cdb4357d6a408faea31813ef0b4, type: 3}
+  - {fileID: 8300000, guid: 9aa1e2159730c95498bd2abd9f4592bd, type: 3}
+  roomToneLoop: {fileID: 8300000, guid: 5b5ddaae13566af46af9bd9c323fedcb, type: 3}
+  triggerDoorVariants:
+  - {fileID: 8300000, guid: b66f06216a9fb6447a654b325d05e9ee, type: 3}
+  - {fileID: 8300000, guid: ca2423b62865a5d458a757b4990320d8, type: 3}
+  - {fileID: 8300000, guid: 88208e3d4c0a455489d8971cdfd23b38, type: 3}
+  uiClick: {fileID: 8300000, guid: 72f5c392cd9cdfd46a7148cd99a1480e, type: 3}
+  masterGroup: {fileID: 0}
+  sfxGroup: {fileID: 0}
+  ambientGroup: {fileID: 0}
+  uiGroup: {fileID: 0}
+  surveillanceGroup: {fileID: 0}

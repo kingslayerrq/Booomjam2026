@@ -16,10 +16,10 @@ MonoBehaviour:
   displayName: StrangeSound
   observeSeconds: 3
   flickerMaxAlpha: 0.18
-  spiritOrbColor: {r: 0.7, g: 0.95, b: 1, a: 0.75}
+  spiritOrbColor: {r: 0.7, g: 0.95, b: 1, a: 1}
   spiritOrbSize: {x: 34, y: 34}
-  strangeSoundClip: {fileID: 0}
+  strangeSoundClip: {fileID: 8300000, guid: c70116c1665950d4ebf4eb7ef1c29190, type: 3}
   strangeSoundInterval: 5
   nightFeedInterferenceIntensity: 0.12
-  nightAudioPromptMultiplierPenalty: 0.25
-  energyMaxReduction: 20
+  nightAudioPromptMultiplierPenalty: 0.6
+  nightStartEnergyReductionPercent: 0.15

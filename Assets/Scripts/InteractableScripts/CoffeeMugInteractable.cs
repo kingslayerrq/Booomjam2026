@@ -38,6 +38,7 @@ public class CoffeeMugInteractable : MonoBehaviour, IInteractable
         if (isInteracting) return;
         
         Debug.Log("Interacted with Coffee Mug");
+        GameAudioManager.Instance.PlayDrinking();
         if (modifyEnergyByPercentage)
         {
             playerResource.AddEnergy(playerResource.MaxEnergy * energyPercentageGainedOnInteract);
