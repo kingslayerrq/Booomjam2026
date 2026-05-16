@@ -77,6 +77,10 @@ public class PrisonerManager : MonoBehaviour
         Debug.Log($"Spawning prisoner {p.PrisonerID}, assigned cell: {pData.AssignedCellRoom}");
         GameObject prisonerObj = Instantiate(prisonerPrefab, transform);
         prisonerObj.GetComponentInChildren<CharacterVisual>()?.Apply(pData.Appearance);
+        if (prisonerObj.GetComponent<PrisonerFootstepAudio>() == null)
+        {
+            prisonerObj.AddComponent<PrisonerFootstepAudio>();
+        }
 
         PrisonerActionController prisonerController = prisonerObj.GetComponent<PrisonerActionController>();
         if (prisonerController != null)
@@ -149,7 +153,7 @@ public class PrisonerManager : MonoBehaviour
 
     private void AssignDailySchedule(int currentDay)
     {
-        var daySchedule = masterSchedule[currentDay];
+        var daySchedule = masterSchedule[currentDay-1];
         if (daySchedule == null) return;
 
         // Separate bad vs good prisoners

@@ -6,8 +6,12 @@ public class ForbiddenMechanismZoneAction : PrisonerAction
 {
     [SerializeField] private Vector3 targetLocalPosition;
     [SerializeField] private float retargetInterval = 0.5f;
+    [SerializeField] private float fallbackHoldSeconds = 40f;
 
     private readonly Dictionary<PrisonerActionController, float> nextRetargetTimes = new Dictionary<PrisonerActionController, float>();
+    private readonly Dictionary<PrisonerActionController, float> fallbackHoldTimers = new Dictionary<PrisonerActionController, float>();
+
+    public override float BadActionZoneStaySecondsOverride => fallbackHoldSeconds;
 
     public override void StartAction(PrisonerActionController prisonerActionController)
     {
@@ -29,24 +33,31 @@ public class ForbiddenMechanismZoneAction : PrisonerAction
     public override void EndAction(PrisonerActionController prisonerActionController)
     {
         nextRetargetTimes.Remove(prisonerActionController);
+        fallbackHoldTimers.Remove(prisonerActionController);
+        prisonerActionController.ClearMovement();
         base.EndAction(prisonerActionController);
     }
 
     private void HoldInZoneUntilResolved(PrisonerActionController prisonerActionController)
     {
         if (!BadActionZoneTrigger.TryGetActionTrigger(this, out BadActionZoneTrigger trigger))
+        {
+            HoldAtTargetForFallbackDuration(prisonerActionController);
             return;
+        }
 
         if (trigger.IsResolved(prisonerActionController))
         {
             prisonerActionController.ClearMovement();
             nextRetargetTimes.Remove(prisonerActionController);
+            fallbackHoldTimers.Remove(prisonerActionController);
             return;
         }
 
         if (trigger.IsInside(prisonerActionController))
         {
             prisonerActionController.ClearMovement();
+            fallbackHoldTimers[prisonerActionController] = 0f;
             return;
         }
 
@@ -55,6 +66,22 @@ public class ForbiddenMechanismZoneAction : PrisonerAction
 
         MoveToZoneTarget(prisonerActionController);
         nextRetargetTimes[prisonerActionController] = Time.time + retargetInterval;
+    }
+
+    private void HoldAtTargetForFallbackDuration(PrisonerActionController prisonerActionController)
+    {
+        if (prisonerActionController.HasMoveTarget)
+            return;
+
+        fallbackHoldTimers.TryGetValue(prisonerActionController, out float holdTimer);
+        if (holdTimer < fallbackHoldSeconds)
+        {
+            fallbackHoldTimers[prisonerActionController] = holdTimer + Time.deltaTime;
+            prisonerActionController.ClearMovement();
+            return;
+        }
+
+        nextRetargetTimes.Remove(prisonerActionController);
     }
 
     private float GetNextRetargetTime(PrisonerActionController prisonerActionController)

@@ -9,12 +9,12 @@ public class DoorInteractable : MonoBehaviour, IInteractable
     private const float AnimDuration = 0.4f;
 
     [RoomDropdown]
-    [Tooltip("The room this door belongs to. Must match the finalRoomName on the NightAttackRoute.")]
+    [Tooltip("The room this door protects. For night attacks this should match NightAttackManager's surveillance room.")]
     [SerializeField] private string assignedRoomName;
     [SerializeField] private bool startOpen = true;
     [Tooltip("The mesh transform to move on open/close. If null, animates this transform.")]
     [SerializeField] private Transform doorMesh;
-    [Tooltip("Where night attackers move to when targeting this door.")]
+    [Tooltip("Legacy fallback for night attackers. NightAttackManager can override this with left/right final destination transforms.")]
     [SerializeField] private Transform arrivalTransform;
     [Tooltip("Battery drained per second while the door is closed.")]
     [SerializeField] private float closedBatteryDrainPerSecond = 5f;
@@ -60,6 +60,8 @@ public class DoorInteractable : MonoBehaviour, IInteractable
         IsOpen = open;
         Transform visual = doorMesh != null ? doorMesh : transform;
         visual.DOLocalMoveY(IsOpen ? OpenY : ClosedY, AnimDuration).SetEase(Ease.InOutQuad);
+        GameObject room = RoomManager.Instance != null ? RoomManager.Instance.GetRoomByName(assignedRoomName) : null;
+        GameAudioManager.Instance.PlayRandomDoor(room, visual.position);
         OnDoorStateChanged?.Invoke(this, IsOpen);
         Debug.Log($"[Door] {name} is now {(IsOpen ? "open" : "closed")}");
     }

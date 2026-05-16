@@ -16,6 +16,8 @@ MonoBehaviour:
   targetRoomName: FourPeople_Room
   moveSpeed: 1.5
   wanderInTargetRoom: 1
+  useRoomWanderAnchors: 1
+  useCustomWanderCenter: 0
   wanderCenterLocalPosition: {x: 0, y: 0, z: 0}
   wanderRadius: 1.5
   wanderFrequency: 3
@@ -23,4 +25,4 @@ MonoBehaviour:
   fakeBodyLocalPosition: {x: 0, y: 0, z: 0}
   fakeBodyLocalEulerAngles: {x: 0, y: 0, z: 0}
   fakeBodyLocalScale: {x: 1, y: 1, z: 1}
-  missedClueBatteryReductionAmount: 0.1
+  missedClueBatteryReductionAmount: 1

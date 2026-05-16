@@ -22,29 +22,50 @@ public class NightAttackerController : MonoBehaviour
     private int _waypointIndex;
     private float _waitTimer;
     private Transform _arrivalTransform;
+    private string _finalRoomName;
+    private bool _isInvisible;
+    private Renderer[] _cachedRenderers;
+    private bool[] _cachedRendererEnabledStates;
+    private PrisonerFootstepAudio _footstepAudio;
 
     public AttackerState State => _state;
     public NightAttackRoute Route => _route;
+    public string FinalRoomName => _finalRoomName;
+    public bool IsInvisible => _isInvisible;
 
     public event Action<NightAttackerController> OnArrivedAtDoor;
     public event Action<NightAttackerController> OnReturnedToCell;
 
-    public void Initialize(NightAttackRoute route, PrisonerActionController pac, Transform arrivalTransform)
+    public void Initialize(
+        NightAttackRoute route,
+        PrisonerActionController pac,
+        string finalRoomName,
+        Transform arrivalTransform,
+        bool isInvisible)
     {
         _route = route;
         _pac = pac;
+        _finalRoomName = finalRoomName;
         _arrivalTransform = arrivalTransform;
+        _isInvisible = isInvisible;
         _waypointIndex = 0;
         _state = AttackerState.Idle;
 
-        if (route == null || pac == null)
+        if (route == null || pac == null || string.IsNullOrWhiteSpace(finalRoomName))
         {
-            Debug.LogError("[NightAttacker] Initialize called with null route or controller.");
+            Debug.LogError("[NightAttacker] Initialize called with null route/controller or empty final room.");
             return;
         }
 
         _pac.AllowNightMovement = true;
-        Debug.Log($"[NightAttacker] {pac.Prisoner.PrisonerID} initialized on route to {route.finalRoomName}");
+        _footstepAudio = _pac.GetComponent<PrisonerFootstepAudio>();
+        if (_footstepAudio == null)
+        {
+            _footstepAudio = _pac.gameObject.AddComponent<PrisonerFootstepAudio>();
+        }
+        ApplyInvisibleState(_isInvisible);
+        Debug.Log($"[NightAttacker] {pac.Prisoner.PrisonerID} initialized on route to {_finalRoomName}" +
+                  $"{(_isInvisible ? " (invisible)" : "")}");
         AdvanceToNextWaypoint();
     }
 
@@ -72,6 +93,8 @@ public class NightAttackerController : MonoBehaviour
 
     private void AdvanceToNextWaypoint()
     {
+        SetWaitingFootsteps(false);
+
         if (_route.waypoints != null && _waypointIndex < _route.waypoints.Count)
         {
             var waypoint = _route.waypoints[_waypointIndex];
@@ -79,7 +102,6 @@ public class NightAttackerController : MonoBehaviour
             if (room != null)
             {
                 _pac.EnterRoom(room);
-                _pac.MoveToWorldPosition(room.transform.position, _route.moveSpeed);
                 Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} traveling to waypoint {_waypointIndex}: {waypoint.roomName}");
             }
             else
@@ -101,15 +123,18 @@ public class NightAttackerController : MonoBehaviour
         var previousWaypoint = _route.waypoints[_waypointIndex - 1];
         _waitTimer = previousWaypoint.stayDuration;
         _state = AttackerState.WaitingInWaypoint;
+        SetWaitingFootsteps(_isInvisible);
         Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} waiting in waypoint for {_waitTimer}s");
     }
 
     private void TravelToFinalRoom()
     {
-        GameObject finalRoom = RoomManager.Instance.GetRoomByName(_route.finalRoomName);
+        SetWaitingFootsteps(false);
+
+        GameObject finalRoom = RoomManager.Instance.GetRoomByName(_finalRoomName);
         if (finalRoom == null)
         {
-            Debug.LogError($"[NightAttacker] Final room '{_route.finalRoomName}' not found.");
+            Debug.LogError($"[NightAttacker] Final room '{_finalRoomName}' not found.");
             return;
         }
 
@@ -117,19 +142,21 @@ public class NightAttackerController : MonoBehaviour
             ? _arrivalTransform.position
             : finalRoom.transform.position;
 
-        Vector3 arrivalLocalPos = finalRoom.transform.InverseTransformPoint(arrivalWorldPos);
-        _pac.EnterRoom(finalRoom, arrivalLocalPos);
-        _pac.MoveToWorldPosition(arrivalWorldPos, _route.moveSpeed);
+        _pac.EnterRoom(finalRoom);
+        _pac.transform.position = arrivalWorldPos;
+        _pac.transform.rotation = _arrivalTransform != null ? _arrivalTransform.rotation : _pac.transform.rotation;
 
         _state = AttackerState.TravelingToDoor;
-        Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} traveling to final room: {_route.finalRoomName}");
+        Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} traveling to final room: {_finalRoomName}");
+        ArriveAtDoor();
     }
 
     private void ArriveAtDoor()
     {
         _state = AttackerState.AtDoor;
         _pac.ClearMovement();
-        Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} arrived at door in {_route.finalRoomName}");
+        SetWaitingFootsteps(_isInvisible);
+        Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} arrived at door in {_finalRoomName}");
         OnArrivedAtDoor?.Invoke(this);
     }
 
@@ -143,9 +170,62 @@ public class NightAttackerController : MonoBehaviour
             _pac.EnterRoom(room);
 
         _pac.AllowNightMovement = false;
+        SetWaitingFootsteps(false);
+        RestoreRenderers();
         _state = AttackerState.Done;
         Debug.Log($"[NightAttacker] {_pac.Prisoner.PrisonerID} returned to cell: {cellRoom}");
         OnReturnedToCell?.Invoke(this);
     }
 
+    private void ApplyInvisibleState(bool invisible)
+    {
+        if (!invisible || _pac == null)
+            return;
+
+        Transform visualRoot = _pac.VisualRoot;
+        _cachedRenderers = visualRoot.GetComponentsInChildren<Renderer>(true);
+        _cachedRendererEnabledStates = new bool[_cachedRenderers.Length];
+
+        for (int i = 0; i < _cachedRenderers.Length; i++)
+        {
+            Renderer renderer = _cachedRenderers[i];
+            if (renderer == null)
+                continue;
+
+            _cachedRendererEnabledStates[i] = renderer.enabled;
+            renderer.enabled = false;
+        }
+    }
+
+    private void RestoreRenderers()
+    {
+        if (_cachedRenderers == null || _cachedRendererEnabledStates == null)
+            return;
+
+        for (int i = 0; i < _cachedRenderers.Length; i++)
+        {
+            Renderer renderer = _cachedRenderers[i];
+            if (renderer != null && i < _cachedRendererEnabledStates.Length)
+            {
+                renderer.enabled = _cachedRendererEnabledStates[i];
+            }
+        }
+
+        _cachedRenderers = null;
+        _cachedRendererEnabledStates = null;
+    }
+
+    private void SetWaitingFootsteps(bool active)
+    {
+        if (_footstepAudio == null)
+            return;
+
+        _footstepAudio.SetForcedLoop(active);
+    }
+
+    private void OnDestroy()
+    {
+        SetWaitingFootsteps(false);
+        RestoreRenderers();
+    }
 }

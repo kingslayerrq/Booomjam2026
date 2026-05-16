@@ -4,11 +4,15 @@ using UnityEngine;
 
 public class DayUI : MonoBehaviour
 {
-    [SerializeField] private DayManager dayManager;
+    private static readonly string[] DaysOfWeek = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
 
-    [Header("UI")] 
-    [SerializeField] private TMP_Text dayText; // For the 03/16 MON part
-    [SerializeField] private TMP_Text timeText; // For the 12:00:00 PM part
+    [SerializeField] private DayManager dayManager;
+    [Tooltip("Day of week that Day 1 falls on. 0 = Sunday, 1 = Monday, etc.")]
+    [SerializeField] [Range(0, 6)] private int startDayOfWeekIndex = 1;
+
+    [Header("UI")]
+    [SerializeField] private TMP_Text dayText;
+    [SerializeField] private TMP_Text timeText;
 
     private void OnEnable()
     {
@@ -34,11 +38,10 @@ public class DayUI : MonoBehaviour
     {
         if (dayManager == null || dayText == null) return;
 
-        // Matches the format: 03/16 MON
-        // Using CurrentDay as a placeholder for date logic
-        string dateFormatted = $"03/{15 + dayManager.CurrentDay:00}"; 
-        string dayOfWeek = "MON"; // You could use an array of strings if you have a weekly cycle
-        
+        int currentDay = dayManager.CurrentDay;
+        string dateFormatted = $"03/{15 + currentDay:00}";
+        string dayOfWeek = DaysOfWeek[(startDayOfWeekIndex + currentDay - 1) % DaysOfWeek.Length];
+
         dayText.text = $"{dateFormatted} {dayOfWeek}";
     }
 
@@ -46,19 +49,16 @@ public class DayUI : MonoBehaviour
     {
         if (dayManager == null || timeText == null) return;
 
-        float currentHour = dayManager.CurrentHour;
-        
-        // Calculate Hours, Minutes, and Seconds
-        int hours24 = Mathf.FloorToInt(currentHour);
-        int minutes = Mathf.FloorToInt((currentHour - hours24) * 60f);
-        int seconds = Mathf.FloorToInt(((currentHour - hours24) * 3600f) % 60f);
+        float displayHour = dayManager.DisplayHour;
 
-        // Convert to 12-hour format
+        int hours24 = Mathf.FloorToInt(displayHour);
+        int minutes = Mathf.FloorToInt((displayHour - hours24) * 60f);
+        int seconds = Mathf.FloorToInt(((displayHour - hours24) * 3600f) % 60f);
+
         string amPm = hours24 >= 12 ? "PM" : "AM";
         int hours12 = hours24 % 12;
-        if (hours12 == 0) hours12 = 12; // Handle Midnight/Noon
+        if (hours12 == 0) hours12 = 12;
 
-        // Format: 12:30:45 PM
-        timeText.text = string.Format("{0:00}:{1:00}:{2:00} {3}", hours12, minutes, seconds, amPm);
+        timeText.text = $"{hours12:00}:{minutes:00}:{seconds:00} {amPm}";
     }
 }

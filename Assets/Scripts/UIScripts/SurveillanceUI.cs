@@ -41,6 +41,9 @@ public class SurveillanceUI : MonoBehaviour
     [SerializeField] private PrisonerEvidenceManager evidenceManager;
     [SerializeField] private SurveillanceEvidenceOverlay evidenceOverlay;
 
+    [Header("Auxiliary Jumpscare")]
+    [SerializeField] private AuxiliaryJumpscareOverlay jumpscareOverlay;
+
     [Header("Prisoner Interaction")]
     [SerializeField] private DayManager dayManager;
     [SerializeField] private SurveillancePrisonerInteractionPanel prisonerInteractionPanel;
@@ -155,6 +158,31 @@ public class SurveillanceUI : MonoBehaviour
         {
             evidenceOverlay.EnsureSetup(expandedImage.rectTransform);
         }
+
+        EnsureJumpscareSetup();
+    }
+
+    private void EnsureJumpscareSetup()
+    {
+        if (expandedImage == null && rootTransform == null && expandedPanel == null)
+            return;
+
+        if (jumpscareOverlay == null)
+        {
+            jumpscareOverlay = GetComponentInChildren<AuxiliaryJumpscareOverlay>(true);
+            if (jumpscareOverlay == null)
+            {
+                jumpscareOverlay = gameObject.AddComponent<AuxiliaryJumpscareOverlay>();
+            }
+        }
+
+        RectTransform overlayRoot = rootTransform != null
+            ? rootTransform
+            : expandedPanel != null
+                ? expandedPanel.GetComponent<RectTransform>()
+                : expandedImage.rectTransform;
+
+        jumpscareOverlay.EnsureSetup(overlayRoot);
     }
 
     private void SetupFeedsGrid()
@@ -239,8 +267,7 @@ public class SurveillanceUI : MonoBehaviour
     public void TryOpenExpandedFeed(SurveillanceFeed feed)
     {
         if (!IsOpen || isTransitioning || feed == null) return;
-
-        // Optimization: Don't restart transition if clicking the already active feed
+        
         if (ActiveFeed == feed && expandedPanel.activeInHierarchy) return;
 
         if (transitionRoutine != null)
@@ -323,6 +350,8 @@ public class SurveillanceUI : MonoBehaviour
             else
                 Debug.LogWarning($"{ActiveCamera.name} has no SurveillanceCamController.");
         }
+
+        GameAudioManager.Instance.SetActiveSurveillanceCamera(ActiveCamera, ActiveRoom);
     }
 
 
@@ -668,6 +697,8 @@ public class SurveillanceUI : MonoBehaviour
             evidenceOverlay.SetNightInterference(0f);
         }
 
+        GameAudioManager.Instance.ClearActiveSurveillanceCamera();
+
         ActiveFeed = null;
         ActiveCamera = null;
         ActiveRoom = null;
@@ -681,6 +712,16 @@ public class SurveillanceUI : MonoBehaviour
             return;
 
         evidenceOverlay.SetNightInterference(evidenceManager.NightFeedInterferenceIntensity);
+
+        if (jumpscareOverlay != null
+            && !jumpscareOverlay.IsPlaying
+            && evidenceManager.TryConsumeAuxiliaryJumpscare(
+                ActiveRoom,
+                out Sprite jumpscareSprite,
+                out AuxiliaryEvidenceDefinition jumpscareDefinition))
+        {
+            jumpscareOverlay.Play(jumpscareSprite, jumpscareDefinition);
+        }
 
         if (!evidenceManager.TryGetVisibleHighRiskEvidence(
                 ActiveRoom,

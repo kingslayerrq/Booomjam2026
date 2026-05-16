@@ -33,8 +33,8 @@ public class PlayerResource : MonoBehaviour
     private float temporaryMaxEnergyPenalty;
 
     [Header("Lockup")]
-    [SerializeField] private int maxLockupNumber = 3;
-    [SerializeField] private int currentLockupNumber = 3;
+    [SerializeField] private int[] lockupNumberByDay;
+    private int _currentLockupNumber;
     
     [Header("References")]
     [SerializeField] private DayManager dayManager;
@@ -44,9 +44,8 @@ public class PlayerResource : MonoBehaviour
     public float MaxBatteryLevel => maxBatteryLevel;
     public float CurrentEnergy => currentEnergy;
     public float MaxEnergy => maxEnergy;
-    public int CurrentLockupNumber => currentLockupNumber;
-    public int MaxLockupNumber => maxLockupNumber;
-    public bool HasLockupChance => currentLockupNumber > 0;
+    public int CurrentLockupNumber => _currentLockupNumber;
+    public bool HasLockupChance => _currentLockupNumber > 0;
 
     public event Action OnBatteryLevelChanged;
     public event Action OnEnergyChanged;
@@ -104,7 +103,7 @@ public class PlayerResource : MonoBehaviour
     {
         ResetBattery();
         ResetEnergy();
-        ResetLockupNumber();
+        ResetLockupNumber(1);
     }
 
     private void ResetEnergy()
@@ -117,7 +116,7 @@ public class PlayerResource : MonoBehaviour
     {
         ClearTemporaryMaxEnergyPenalty();
         ResetEnergy();
-        ResetLockupNumber();
+        ResetLockupNumber(dayManager.CurrentDay);
     }
 
     private void ResetBattery()
@@ -172,26 +171,21 @@ public class PlayerResource : MonoBehaviour
 
     public bool TryUseLockupChance()
     {
-        if (currentLockupNumber <= 0)
+        if (_currentLockupNumber <= 0)
             return false;
 
-        currentLockupNumber--;
+        _currentLockupNumber--;
         OnLockupNumberChanged?.Invoke();
         return true;
     }
 
-    public void ResetLockupNumber()
+    public void ResetLockupNumber(int day)
     {
-        currentLockupNumber = Mathf.Max(0, maxLockupNumber);
+        int index = Mathf.Clamp(day - 1, 0, lockupNumberByDay.Length - 1);
+        _currentLockupNumber = Mathf.Max(0, lockupNumberByDay[index]);
         OnLockupNumberChanged?.Invoke();
     }
-
-    public void SetMaxLockupNumber(int value)
-    {
-        maxLockupNumber = Mathf.Max(0, value);
-        currentLockupNumber = Mathf.Min(currentLockupNumber, maxLockupNumber);
-        OnLockupNumberChanged?.Invoke();
-    }
+    
     
    
     
@@ -227,6 +221,11 @@ public class PlayerResource : MonoBehaviour
     {
         currentEnergy = Mathf.Max(currentEnergy - value, 0);
         OnEnergyChanged?.Invoke();
+    }
+
+    public void ReduceEnergyByMaxPercent(float percent)
+    {
+        ReduceEnergy(maxEnergy * Mathf.Clamp01(percent));
     }
 
     public void AddEnergy(float value)

@@ -11,18 +11,34 @@ public class CharacterVisual : MonoBehaviour
 
     public void Apply(CharacterAppearance appearance)
     {
-        if (appearance == null) return;
-        SetMaterial(torso, appearance.torso);
-        SetMaterial(head, appearance.head);
-        SetMaterial(armL, appearance.armL);
-        SetMaterial(armR, appearance.armR);
-        SetMaterial(legL, appearance.legL);
-        SetMaterial(legR, appearance.legR);
+        if (appearance == null)
+        {
+            Debug.LogWarning($"[CharacterVisual] {name}: no appearance assigned.", this);
+            return;
+        }
+
+        SetMaterial(torso, appearance.torso, "torso");
+        SetMaterial(head, appearance.head, "head");
+        SetMaterial(armL, appearance.armL, "armL");
+        SetMaterial(armR, appearance.armR, "armR");
+        SetMaterial(legL, appearance.legL, "legL");
+        SetMaterial(legR, appearance.legR, "legR");
     }
 
-    private static void SetMaterial(MeshRenderer renderer, Material material)
+    private void SetMaterial(MeshRenderer renderer, Material material, string bodyPart)
     {
-        if (renderer == null || material == null) return;
-        renderer.material = material;
+        if (renderer == null)
+        {
+            Debug.LogWarning($"[CharacterVisual] {name}: missing renderer for {bodyPart}.", this);
+            return;
+        }
+
+        if (material == null)
+        {
+            Debug.LogWarning($"[CharacterVisual] {name}: missing material for {bodyPart}; keeping prefab material.", this);
+            return;
+        }
+
+        renderer.sharedMaterial = material;
     }
 }

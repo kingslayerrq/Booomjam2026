@@ -17,9 +17,20 @@ public class NightAttackRoute : ScriptableObject
     public List<NightRouteWaypoint> waypoints = new List<NightRouteWaypoint>();
 
     [RoomDropdown]
-    [Tooltip("The room containing the door the attacker is targeting (e.g. SurveillanceRoom).")]
+    [Tooltip("Legacy fallback. NightAttackManager now sends attackers to its configured surveillance room.")]
     public string finalRoomName;
 
     [Min(0.1f)]
     public float moveSpeed = 1.5f;
+
+    public string PenultimateRoomName
+    {
+        get
+        {
+            if (waypoints == null || waypoints.Count == 0)
+                return null;
+
+            return waypoints[waypoints.Count - 1]?.roomName;
+        }
+    }
 }

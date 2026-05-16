@@ -143,7 +143,9 @@ public class DayTimeConfig : ScriptableObject
     private void ValidateSegments(List<TimeSegment> configuredSegments, string label)
     {
         if (configuredSegments == null || configuredSegments.Count == 0) return;
-        float maxHour = (float)dayFormat;
+        
+        // Remove the old 'maxHour = (float)dayFormat' limit.
+        float absoluteMax = 48f; // New ceiling to allow overnight continuous time
 
         for (int i = 0; i < configuredSegments.Count; i++)
         {
@@ -152,9 +154,9 @@ public class DayTimeConfig : ScriptableObject
                 Debug.LogWarning($"[DayTimeConfig] '{name}' - {label} segment {i} is invalid: Start Hour ({configuredSegments[i].gameStartHour}) must be less than End Hour ({configuredSegments[i].gameEndHour}).", this);
             }
 
-            if (configuredSegments[i].gameEndHour > maxHour)
+            if (configuredSegments[i].gameEndHour > absoluteMax)
             {
-                Debug.LogWarning($"[DayTimeConfig] '{name}' - {label} segment {i} ends after hour {maxHour}.", this);
+                Debug.LogWarning($"[DayTimeConfig] '{name}' - {label} segment {i} ends after hour {absoluteMax}.", this);
             }
 
             if (i < configuredSegments.Count - 1)
@@ -171,7 +173,11 @@ public class DayTimeConfig : ScriptableObject
 [System.Serializable]
 public class TimeSegment
 {
-    [Range(0f, 24f)] public float gameStartHour;
-    [Range(0f, 24f)] public float gameEndHour;
+    [Tooltip("Use values > 24 for times past midnight. (e.g., 8 AM next day = 32)")]
+    [Range(0f, 48f)] public float gameStartHour;
+    
+    [Tooltip("Use values > 24 for times past midnight. (e.g., 8 AM next day = 32)")]
+    [Range(0f, 48f)] public float gameEndHour;
+    
     public float realDurationInSeconds;
 }

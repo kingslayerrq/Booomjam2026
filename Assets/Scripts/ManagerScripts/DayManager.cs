@@ -25,6 +25,7 @@ public class DayManager : MonoBehaviour
     public float RemainingSeconds => Mathf.Max(0f, currentPhaseDurationInSeconds - elapsedPhaseTimeInSeconds);
     public float NormalizedTime => currentPhaseDurationInSeconds <= 0f ? 1f : elapsedPhaseTimeInSeconds / currentPhaseDurationInSeconds;
     public float CurrentHour => timeConfig != null ? timeConfig.GameHourAtRealSeconds(currentPhase, elapsedPhaseTimeInSeconds) : 0f;
+    public float DisplayHour => Mathf.Repeat(CurrentHour, 24f);
     public bool IsDayRunning => IsDayPhase;
     public bool IsTimeRunning => isTimeRunning;
 
@@ -119,6 +120,8 @@ public class DayManager : MonoBehaviour
         {
             OnNightStarted?.Invoke();
         }
+
+        GameAudioManager.Instance.PlayRandomAlarm();
     }
 
     private void CompleteCurrentPhase()

@@ -7,10 +7,14 @@ public class PlayerResourceUI : MonoBehaviour
 {
     [SerializeField] private PlayerResource playerResource;
     
-    [Header("Battery Segments (Left)")]
+    [Header("Battery Segments")]
     [SerializeField] private Image[] batterySegments;
-
+    
+    [Header("Energy Image")]
     [SerializeField] private Image energyImageFill;
+
+    [Header("Lockup")] 
+    [SerializeField] private TextMeshProUGUI lockupLabel;
 
     private void OnEnable()
     {
@@ -18,9 +22,11 @@ public class PlayerResourceUI : MonoBehaviour
         {
             playerResource.OnBatteryLevelChanged += UpdateBatteryLevelUI;
             playerResource.OnEnergyChanged += UpdateEnergyUI;
+            playerResource.OnLockupNumberChanged += UpdateLockupLabel;
         }
         UpdateBatteryLevelUI();
         UpdateEnergyUI();
+        UpdateLockupLabel();
     }
 
     private void OnDisable()
@@ -29,6 +35,7 @@ public class PlayerResourceUI : MonoBehaviour
         {
             playerResource.OnBatteryLevelChanged -= UpdateBatteryLevelUI;
             playerResource.OnEnergyChanged -= UpdateEnergyUI;
+            playerResource.OnLockupNumberChanged -= UpdateLockupLabel;
         }
     }
 
@@ -48,5 +55,12 @@ public class PlayerResourceUI : MonoBehaviour
         if (playerResource == null) return;
         if (energyImageFill == null) return;
         energyImageFill.fillAmount = Mathf.Clamp01(playerResource.CurrentEnergy / playerResource.MaxEnergy);
+    }
+
+    private void UpdateLockupLabel()
+    {
+        if (playerResource == null) return;
+        if (lockupLabel == null) return;
+        lockupLabel.text = $"x{playerResource.CurrentLockupNumber}";
     }
 }

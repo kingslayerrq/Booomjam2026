@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 [Serializable]
 public class CharacterAppearance
@@ -18,6 +19,10 @@ public class PrisonerData : ScriptableObject
     [Header("Basic Info")]
     [SerializeField] private string prisonerName;
     [SerializeField] private string prisonerID;
+    [SerializeField] private Sprite prisonerHeadProfilePic;
+    [TextArea(5, 10)]
+    [SerializeField] private string arrestedReason;
+    
     [Tooltip("The room the prisoner is assigned to")]
     [RoomDropdown]
     [SerializeField] private string assignedCellRoom;
@@ -27,6 +32,8 @@ public class PrisonerData : ScriptableObject
 
     public string PrisonerName => prisonerName;
     public string PrisonerID => prisonerID;
+    public Sprite PrisonerHeadProfilePic => prisonerHeadProfilePic;
+    public string ArrestedReason => arrestedReason;
     public string AssignedCellRoom => assignedCellRoom;
     public CharacterAppearance Appearance => appearance;
 

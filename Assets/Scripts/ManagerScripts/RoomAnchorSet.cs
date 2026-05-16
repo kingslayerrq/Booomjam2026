@@ -44,6 +44,11 @@ public class RoomAnchorSet : MonoBehaviour
             }
         }
 
+        if (entryPoints != null && entryPoints.Length > 0 && entryPoints[0] != null)
+        {
+            return transform.InverseTransformPoint(entryPoints[0].position);
+        }
+
         if (useCustomCenter)
             return customCenterLocalPosition;
 

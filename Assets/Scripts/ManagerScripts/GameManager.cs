@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject dayCompletePanel;
     [SerializeField] private GameObject halfDayCompletePanel;
     [SerializeField] private GameObject gameCompletePanel;
+    [SerializeField] private GameObject gameGuidePanel;
     [SerializeField] private Button continueButton;
     [SerializeField] private GameObject[] gameplayObjectsToHideWhileMenuOpen = new GameObject[0];
     [Tooltip("Panels that will unlock cursor (locks player camera movement) when active")]
@@ -149,11 +150,35 @@ public class GameManager : MonoBehaviour
         TriggerKnockoutSequence(() => dayManager.ForceEndCurrentPhase());
     }
 
-    private void TriggerKnockoutSequence(Action onKnockoutComplete)
+    public void TriggerSurveillanceDoorThreatFailure(int damage, string jumpToNightReason)
+    {
+        if (damage > 0)
+        {
+            playerHealth?.TakeSabotageDamage(damage);
+        }
+
+        if (playerHealth != null && playerHealth.CurrentHealth <= 0)
+            return;
+
+        TriggerKnockoutSequence(() => dayManager?.JumpToNight(jumpToNightReason), false);
+    }
+
+    private void TriggerKnockoutSequence(Action onKnockoutComplete, bool stopTime = true)
     {
         surveillanceUI?.Close();
-        dayManager.StopDay();
-        playerCamera?.TriggerKnockout(onKnockoutComplete);
+        if (stopTime)
+        {
+            dayManager.StopDay();
+        }
+
+        if (playerCamera != null)
+        {
+            playerCamera.TriggerKnockout(onKnockoutComplete);
+        }
+        else
+        {
+            onKnockoutComplete?.Invoke();
+        }
     }
 
     private void HandleDayEnd()
@@ -186,6 +211,28 @@ public class GameManager : MonoBehaviour
         HideGameStatePanels();
         SetMenuOpen(true);
         RefreshContinueButton();
+    }
+
+    // Called from game over or game complete screen only.
+    // StopDay and DeleteSave are already handled by HandleGameOver / HandleDayEnd.
+    public void ReturnToMenu()
+    {
+        surveillanceUI?.Close();
+        playerCamera?.TriggerWakeUp();
+        ShowMainMenu();
+    }
+
+    public void OpenGuide()
+    {
+        if (gameGuidePanel == null) return;
+        gameGuidePanel.SetActive(true);
+    }
+
+    public void CloseGuide()
+    {
+        if (gameGuidePanel == null) return;
+        gameGuidePanel.SetActive(false);
+        ShowMainMenu();
     }
 
     public void StartNewGame()
@@ -271,6 +318,9 @@ public class GameManager : MonoBehaviour
 
         if (gameCompletePanel != null)
             gameCompletePanel.SetActive(false);
+        
+        // if (gameGuidePanel != null)
+        //     gameGuidePanel.SetActive(false);
     }
 
     private void SetMenuOpen(bool isOpen)

@@ -2,8 +2,11 @@ using UnityEngine;
 
 public class DocInteractable : MonoBehaviour, IInteractable
 {
+    [SerializeField] private PrisonerScheduleUI prisonerScheduleUI;
+
     public void Interact()
     {
-        throw new System.NotImplementedException();
+        Debug.Log($"Open prisoner schedule ui.");
+        prisonerScheduleUI.Open();
     }
 }

@@ -8,7 +8,7 @@ public class NightAttackConfig : ScriptableObject
     [Min(0)]
     public int totalAttackers = 1;
 
-    [Tooltip("Maximum attackers active simultaneously. Each must target a different door. Max 3.")]
+    [Tooltip("Maximum attackers active simultaneously. Left and right surveillance destinations can each hold one attacker.")]
     [Range(1, 3)]
     public int maxSimultaneous = 1;
 
@@ -16,6 +16,10 @@ public class NightAttackConfig : ScriptableObject
     [Min(0f)]
     public float waveLaunchInterval = 3f;
 
-    [Tooltip("Routes available this night. Needs at least maxSimultaneous routes with different finalRoomNames.")]
+    [Tooltip("Chance that each launched night attacker is invisible. Invisible attackers hide their renderers and emit footstep audio while waiting in waypoint rooms.")]
+    [Range(0f, 1f)]
+    public float invisibleAttackerChance = 0.35f;
+
+    [Tooltip("Routes available this night. The last waypoint decides the surveillance side: Prison_Administration_Office = left, Interrogation_Room = right.")]
     public List<NightAttackRoute> routePool = new List<NightAttackRoute>();
 }
