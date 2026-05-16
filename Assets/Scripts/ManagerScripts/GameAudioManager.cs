@@ -84,6 +84,12 @@ public class GameAudioManager : MonoBehaviour
     private void Start()
     {
         BindButtonClickSfxInScene();
+        UpdateGameplayRoomToneState();
+    }
+
+    private void Update()
+    {
+        UpdateGameplayRoomToneState();
     }
 
     public void PlayUI(AudioClip clip)
@@ -180,7 +186,6 @@ public class GameAudioManager : MonoBehaviour
         activeSurveillanceCamera = camera;
         activeAudibleRoom = room;
         EnableOnlyActiveCameraListener(camera);
-        StartRoomTone(camera.transform);
     }
 
     public void ClearActiveSurveillanceCamera()
@@ -191,6 +196,7 @@ public class GameAudioManager : MonoBehaviour
         activeSurveillanceCamera = null;
         activeAudibleRoom = null;
         RestoreMainListener();
+        UpdateGameplayRoomToneState();
     }
 
     public void SetCameraMoveLoopActive(bool active, Transform cameraTransform = null)
@@ -257,6 +263,7 @@ public class GameAudioManager : MonoBehaviour
         mainListener = null;
         RestoreMainListener();
         BindButtonClickSfxInScene();
+        UpdateGameplayRoomToneState();
     }
 
     private void EnsureSetup()
@@ -324,30 +331,42 @@ public class GameAudioManager : MonoBehaviour
         source.maxDistance = max3dDistance;
     }
 
-    private void StartRoomTone(Transform parent)
+    private void UpdateGameplayRoomToneState()
     {
-        if (catalog == null || parent == null)
+        if (ShouldPlayGameplayRoomTone())
+        {
+            StartGameplayRoomTone();
             return;
+        }
 
-        AudioClip clip = ResolveRoomToneClip();
-        if (clip == null)
-            return;
-
-        roomToneSource = CreateLoopSource("ActiveRoomToneLoop", parent, catalog.AmbientGroup, ambientVolume);
-        roomToneSource.clip = clip;
-        PlayLoop(roomToneSource, ambientVolume);
+        StopRoomTone();
     }
 
-    private AudioClip ResolveRoomToneClip()
+    private bool ShouldPlayGameplayRoomTone()
     {
-        RoomAudioSettings roomAudioSettings = activeAudibleRoom != null
-            ? activeAudibleRoom.GetComponent<RoomAudioSettings>()
-            : null;
+        return !IsSurveillanceAudioActive && !GameManager.IsMenuOpen;
+    }
 
-        if (roomAudioSettings != null && roomAudioSettings.RoomToneOverride != null)
-            return roomAudioSettings.RoomToneOverride;
+    private void StartGameplayRoomTone()
+    {
+        EnsureSetup();
+        if (catalog == null || catalog.RoomToneLoop == null)
+            return;
 
-        return catalog != null ? catalog.RoomToneLoop : null;
+        if (roomToneSource == null)
+        {
+            GameObject sourceObject = new GameObject("GameplayRoomToneLoop");
+            sourceObject.transform.SetParent(transform, false);
+            sourceObject.transform.localPosition = Vector3.zero;
+
+            roomToneSource = sourceObject.AddComponent<AudioSource>();
+            Configure2DSource(roomToneSource, catalog.AmbientGroup);
+            roomToneSource.loop = true;
+            roomToneSource.volume = 0f;
+            roomToneSource.clip = catalog.RoomToneLoop;
+        }
+
+        PlayLoop(roomToneSource, ambientVolume);
     }
 
     private void StopRoomTone()
